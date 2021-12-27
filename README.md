@@ -1,6 +1,6 @@
 # HA-LondonTfL
 
-Simple sensor to retrieve departures from a single Transport for London station.
+Simple Home Assistant sensor to retrieve departures from a single Transport for London station.
 
 Just drop into your `custom_components` folder.
 
