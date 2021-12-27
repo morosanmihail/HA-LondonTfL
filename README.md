@@ -17,3 +17,6 @@ Demo configuration:
   platform_filter: Platform 2  # Optional. All platforms by default
   max: 3  # Optional. 3 items by default
 ```
+
+TODO:
+- Add support as a custom HACS repo
