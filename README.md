@@ -20,3 +20,4 @@ Demo configuration:
 
 TODO:
 - Add support as a custom HACS repo
+- Explain how to get station codes
