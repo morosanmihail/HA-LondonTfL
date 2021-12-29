@@ -1,6 +1,7 @@
 """Platform for sensor integration."""
 from __future__ import annotations
 from time import time
+from typing import OrderedDict
 
 import aiohttp
 import async_timeout
@@ -16,7 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-SCAN_INTERVAL = timedelta(minutes=3)
+SCAN_INTERVAL = timedelta(minutes=2)
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -39,17 +40,23 @@ async def request(url, self):
 
         
 DEFAULT_NAME = 'London TfL'
+CONF_STOPS = 'stops'
+
 CONF_LINE = 'line'
 CONF_STATION = 'station'
-CONF_PLATFORM = 'platform_filter'
+CONF_PLATFORM = 'platform'
 CONF_MAX = 'max'
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+CONFIG_STOP = vol.Schema({
     vol.Required(CONF_LINE): cv.string,
     vol.Required(CONF_STATION): cv.string,
     vol.Optional(CONF_PLATFORM, default=''): cv.string,
     vol.Optional(CONF_MAX, default=3): cv.positive_int,
+})
+
+PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
+    vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+    vol.Required(CONF_STOPS): vol.All(cv.ensure_list, [CONFIG_STOP]), 
 })
 
 def setup_platform(
@@ -60,25 +67,39 @@ def setup_platform(
 ) -> None:
     """Set up the sensor platform."""
     name = config.get(CONF_NAME)
-    add_entities([LondonTfLSensor(hass, config, name)])
+    stops = config.get(CONF_STOPS)
+
+    for stop in stops:
+        if stop['station'] != None and stop['line'] != None:
+            add_entities(
+                [LondonTfLSensor(
+                    name + '_' + stop['line'] + '_' + stop['station'], 
+                    stop['line'], 
+                    stop['station'], 
+                    stop['platform'],
+                    stop['max'],
+                )]
+        )
 
 
 class LondonTfLSensor(SensorEntity):
     """Representation of a Sensor."""
 
-    def __init__(self, hass, conf, name):
+    def __init__(self, name, line, station, platform_filter, max):
         """Initialize the sensor."""
         self._name = name
+        self.line = line
+        self.station = station
+        self.filter_platform = platform_filter.strip() if platform_filter != None else ''
+        self.max_items = int(max)
+
         self._state = None
         self._api_json = []
-        self.line = conf.get(CONF_LINE)
-        self.station = conf.get(CONF_STATION)
-        self.filter_platform = conf.get(CONF_PLATFORM)
-        self.max_items = int(conf.get(CONF_MAX))
+        self._destination = ''
 
     @property
     def name(self) -> str:
-        return self._name
+        return self._destination if self._destination else self._name
 
     @property
     def state(self):
@@ -112,29 +133,42 @@ class LondonTfLSensor(SensorEntity):
             self._api_json, key=lambda i: i['expectedArrival'], reverse=False
         )[:self.max_items]
 
-        self._state = time_to_station(self._api_json[0])
+        if len(self._api_json) > 0:
+            self._state = parser.parse(self._api_json[0]['expectedArrival']).strftime('%H:%M')
+        else:
+            self._state = 'None'
 
     @property
     def extra_state_attributes(self):
         attributes = {}
 
+        if len(self._api_json) == 0:
+            return attributes 
+
         index = 0
         for item in self._api_json:
             departure = {}
             departure['Destination'] = item['destinationName']
-            exp_time = parser.parse(item['expectedArrival'])
-            departure['ExpectedTime'] = exp_time.strftime('%H:%M')
+            exp_time = parser.parse(item['expectedArrival']).strftime('%H:%M')
+            departure['ExpectedTime'] = exp_time
             departure['TimeToStation'] = time_to_station(item, False)
             attributes['{0}'.format(index)] = departure
+
+            if index == 0:
+                attributes['remaining'] = time_to_station(self._api_json[0], False, '0:{0}:{1}')
+                attributes['expected'] = exp_time
+                attributes['destination'] = item['destinationName']
+                self._destination = item['destinationName']
+
             index = index + 1
 
         return attributes
 
 
-def time_to_station(entry, with_destination = True):
+def time_to_station(entry, with_destination = True, style = '{0}m {1}s'):
     next_departure_time = entry['timeToStation']
     next_departure_dest = entry['destinationName']
-    return '{0}m {1}s'.format(
+    return style.format(
         int(next_departure_time / 60),
         int(next_departure_time % 60)
     ) + (' to ' + next_departure_dest if with_destination else '')

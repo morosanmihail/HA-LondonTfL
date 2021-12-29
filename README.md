@@ -1,6 +1,8 @@
 # HA-LondonTfL
 
-Simple Home Assistant sensor to retrieve departures from a single Transport for London station.
+WARNING: still under construction and subject to change often
+
+Simple Home Assistant sensor to retrieve departures from Transport for London stations.
 
 Just drop into your `custom_components` folder.
 
@@ -10,14 +12,19 @@ Attributes contain up to `max` departures.
 Demo configuration:
 
 ```
-- platform: london_tfl
-  name: DLR from Royal Victoria Platform 2
-  line: dlr  # Required
-  station: 940GZZDLRVC  # Required
-  platform_filter: Platform 2  # Optional. All platforms by default
-  max: 3  # Optional. 3 items by default
+sensor:
+  - platform: london_tfl
+    name: London TfL
+    stops:
+      - line: dlr  # Required
+        station: 940GZZDLRVC  # Required
+      - line: dlr
+        station: 940GZZDLCGT
+        platform: Platform 4  # Optional. All platforms by default
+        max: 3  # Optional. 3 items by default
 ```
 
 TODO:
 - Add support as a custom HACS repo
 - Explain how to get station codes
+- Expand with `/Journey/JourneyResults` API
