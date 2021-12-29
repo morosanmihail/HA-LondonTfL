@@ -2,6 +2,8 @@
 
 WARNING: still under construction and subject to change often
 
+![Departure details from Canning Town Station Platform 4](https://github.com/morosanmihail/HA-LondonTfL/blob/main/images/example.png?raw=true)
+
 Simple Home Assistant sensor to retrieve departures from Transport for London stations.
 
 Just drop into your `custom_components` folder.
