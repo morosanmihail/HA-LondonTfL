@@ -1,15 +1,11 @@
 """Platform for sensor integration."""
 from __future__ import annotations
-from time import time
-from typing import OrderedDict
 
 import aiohttp
 import async_timeout
-import logging
 import json
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
-from datetime import datetime, timedelta
 from dateutil import parser
 from homeassistant.components.sensor import SensorEntity, PLATFORM_SCHEMA
 from homeassistant.const import CONF_NAME
@@ -17,24 +13,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-SCAN_INTERVAL = timedelta(minutes=2)
-_LOGGER = logging.getLogger(__name__)
-
-
-DEFAULT_NAME = 'London TfL'
-CONF_STOPS = 'stops'
-
-CONF_LINE = 'line'
-CONF_STATION = 'station'
-CONF_PLATFORM = 'platform'
-CONF_MAX = 'max'
-
-CONFIG_STOP = vol.Schema({
-    vol.Required(CONF_LINE): cv.string,
-    vol.Required(CONF_STATION): cv.string,
-    vol.Optional(CONF_PLATFORM, default=''): cv.string,
-    vol.Optional(CONF_MAX, default=3): cv.positive_int,
-})
+from .const import (
+    CONF_STOPS,
+    CONFIG_STOP,
+    LINE_IMAGES,
+    DEFAULT_NAME
+)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
@@ -55,7 +39,7 @@ def setup_platform(
         if stop['station'] != None and stop['line'] != None:
             add_entities(
                 [LondonTfLSensor(
-                    name + '_' + stop['line'] + '_' + stop['station'],
+                    name,
                     stop['line'],
                     stop['station'],
                     stop['platform'],
@@ -63,20 +47,13 @@ def setup_platform(
                 )]
         )
 
-
-# This is currently dodgy as-is until / unless I get proper permission to use TfL's iconography around this.
-line_images = {
-    'default': '',
-    'dlr': 'http://vignette3.wikia.nocookie.net/locomotive/images/6/66/2000px-DLR_roundel.svg.png/revision/latest?cb=20121228140928',
-}
-
-
 class LondonTfLSensor(SensorEntity):
     """Representation of a Sensor."""
 
     def __init__(self, name, line, station, platform_filter, max):
         """Initialize the sensor."""
-        self._name = name
+        self._platformname = name
+        self._name = name + '_' + line + '_' + station
         self.line = line
         self.station = station
         self.filter_platform = platform_filter.strip() if platform_filter != None else ''
@@ -87,8 +64,17 @@ class LondonTfLSensor(SensorEntity):
         self._destination = ''
 
     @property
+    def unique_id(self):
+        return self._platformname + '_' + self.line + '_' + self.station
+
+    @property
     def name(self) -> str:
         return self._destination if self._destination else self._name
+
+    @property
+    def icon(self):
+        """Icon of the sensor."""
+        return "mdi:train"
 
     @property
     def state(self):
@@ -157,7 +143,7 @@ class LondonTfLSensor(SensorEntity):
             data.append({
                 'title': departure['Destination'],
                 'airdate': item['expectedArrival'],
-                'fanart': line_images[self.line],
+                'fanart': LINE_IMAGES[self.line],
                 'flag': True,
             })
 
