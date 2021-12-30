@@ -21,24 +21,6 @@ SCAN_INTERVAL = timedelta(minutes=2)
 _LOGGER = logging.getLogger(__name__)
 
 
-async def fetch(session, url):
-    try:
-        with async_timeout.timeout(2):
-            async with session.get(
-                url, headers={
-                    "Accept": "application/json"
-                }
-            ) as response:
-                return await response.text()
-    except:
-        pass
-
-
-async def request(url, self):
-    async with aiohttp.ClientSession() as session:
-        return await fetch(session, url)
-
-        
 DEFAULT_NAME = 'London TfL'
 CONF_STOPS = 'stops'
 
@@ -56,7 +38,7 @@ CONFIG_STOP = vol.Schema({
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-    vol.Required(CONF_STOPS): vol.All(cv.ensure_list, [CONFIG_STOP]), 
+    vol.Required(CONF_STOPS): vol.All(cv.ensure_list, [CONFIG_STOP]),
 })
 
 def setup_platform(
@@ -73,13 +55,20 @@ def setup_platform(
         if stop['station'] != None and stop['line'] != None:
             add_entities(
                 [LondonTfLSensor(
-                    name + '_' + stop['line'] + '_' + stop['station'], 
-                    stop['line'], 
-                    stop['station'], 
+                    name + '_' + stop['line'] + '_' + stop['station'],
+                    stop['line'],
+                    stop['station'],
                     stop['platform'],
                     stop['max'],
                 )]
         )
+
+
+# This is currently dodgy as-is until / unless I get proper permission to use TfL's iconography around this.
+line_images = {
+    'default': '',
+    'dlr': 'http://vignette3.wikia.nocookie.net/locomotive/images/6/66/2000px-DLR_roundel.svg.png/revision/latest?cb=20121228140928',
+}
 
 
 class LondonTfLSensor(SensorEntity):
@@ -143,7 +132,18 @@ class LondonTfLSensor(SensorEntity):
         attributes = {}
 
         if len(self._api_json) == 0:
-            return attributes 
+            return attributes
+
+        data = [
+            {
+                'title_default': 'To $title',
+                'line1_default': 'at $time',
+                'line2_default': '',
+                'line3_default': '',
+                'line4_default': '',
+                'icon': 'mdi:train',
+            }
+        ]
 
         index = 0
         for item in self._api_json:
@@ -154,6 +154,13 @@ class LondonTfLSensor(SensorEntity):
             departure['TimeToStation'] = time_to_station(item, False)
             attributes['{0}'.format(index)] = departure
 
+            data.append({
+                'title': departure['Destination'],
+                'airdate': item['expectedArrival'],
+                'fanart': line_images[self.line],
+                'flag': True,
+            })
+
             if index == 0:
                 attributes['remaining'] = time_to_station(self._api_json[0], False, '0:{0}:{1}')
                 attributes['expected'] = exp_time
@@ -161,6 +168,8 @@ class LondonTfLSensor(SensorEntity):
                 self._destination = item['destinationName']
 
             index = index + 1
+
+        attributes['data'] = data
 
         return attributes
 
@@ -172,3 +181,21 @@ def time_to_station(entry, with_destination = True, style = '{0}m {1}s'):
         int(next_departure_time / 60),
         int(next_departure_time % 60)
     ) + (' to ' + next_departure_dest if with_destination else '')
+
+
+async def fetch(session, url):
+    try:
+        with async_timeout.timeout(2):
+            async with session.get(
+                url, headers={
+                    "Accept": "application/json"
+                }
+            ) as response:
+                return await response.text()
+    except:
+        pass
+
+
+async def request(url, self):
+    async with aiohttp.ClientSession() as session:
+        return await fetch(session, url)
