@@ -8,6 +8,7 @@ Simple Home Assistant sensor to retrieve departures from Transport for London st
 Each station creates its own sensor.
 
 Just drop into your `custom_components` folder.
+After, of course, creating a new folder in there called `london_tfl`, where all the files in this repo will live in.
 
 Sensor state is the next train departure time from the given station.
 Attributes contain up to `max` departures.
