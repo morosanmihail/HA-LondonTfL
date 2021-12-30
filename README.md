@@ -82,3 +82,6 @@ TODO:
 - Add support as a custom HACS repo
 - Explain how to get station codes
 - Expand with `/Journey/JourneyResults` API
+
+Known issues:
+- Some stations do not report any data (either at all, or during periods of disruption) via the `Line/Arrivals` API. This results in no results being returned to the sensor. The workaround will be to use the `Journey/JourneyResults` API at a later date.
