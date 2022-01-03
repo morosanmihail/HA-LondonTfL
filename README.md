@@ -28,6 +28,9 @@ sensor:
         max: 3  # Optional. 3 items by default
 ```
 
+Alternatively, you can add integration via the Integrations menu by searching for `London TfL`. 
+There is, unfortunately, a bug currently with no form hints being displayed.
+
 Also available is support for the Upcoming Media card.
 Random, yes, but it works as a decent visualiser of all upcoming times.
 
