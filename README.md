@@ -10,7 +10,7 @@ Each station creates its own sensor.
 Just drop into your `custom_components` folder.
 After, of course, creating a new folder in there called `london_tfl`, where all the files in this repo will live in.
 
-Sensor state is the next train departure time from the given station.
+Sensor state is the next train departure time from the given station and platform (if set).
 Attributes contain up to `max` departures.
 
 Demo configuration:
@@ -27,6 +27,9 @@ sensor:
         platform: Platform 4  # Optional. All platforms by default
         max: 3  # Optional. 3 items by default
 ```
+
+Alternatively, you can add integration via the Integrations menu by searching for `London TfL`. 
+There is, unfortunately, a bug currently with no form hints being displayed.
 
 Also available is support for the Upcoming Media card.
 Random, yes, but it works as a decent visualiser of all upcoming times.
@@ -62,20 +65,18 @@ card_mod:
       padding: 0px !important;
     }
 
-    .dlr__fanart {
+    .lond_fanart {
       border-radius: var(--ha-card-border-radius, 4px);
       background-color: rgb(100, 100, 100);
       background-blend-mode: multiply;
       height: 80px;
     }
 
-    .dlr__fan_fanart {
+    .lond_fan_fanart {
       background: none !important;
       box-shadow: none !important;
     }
 ```
-
-Change `dlr__fanart` and `dlr__fan_fanart` as your sensor requires.
 
 
 TODO:
