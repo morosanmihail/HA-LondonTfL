@@ -216,7 +216,7 @@ class LondonTfLSensor(SensorEntity):
         index = 0
         for item in self._api_json:
             departure = {}
-            departure['Destination'] = item['destinationName']
+            departure['Destination'] = get_destination(item)
             exp_time = parser.parse(item['expectedArrival']).strftime('%H:%M')
             departure['ExpectedTime'] = exp_time
             departure['TimeToStation'] = time_to_station(item, False)
@@ -238,8 +238,8 @@ class LondonTfLSensor(SensorEntity):
                     time_to_station(self._api_json[0], False, '0:{0}:{1}')
                 )
                 attributes['expected'] = exp_time
-                attributes['destination'] = item['destinationName']
-                self._destination = item['destinationName']
+                attributes['destination'] = departure['Destination']
+                self._destination = departure['Destination']
 
             index = index + 1
 
@@ -253,8 +253,17 @@ def time_to_station(entry, with_destination=True, style='{0}m {1}s'):
         parser.parse(entry['expectedArrival']).replace(tzinfo=None) -
         datetime.now().replace(tzinfo=None)
     ).seconds
-    next_departure_dest = entry['destinationName']
+    next_departure_dest = get_destination(entry)
     return style.format(
         int(next_departure_time / 60),
         int(next_departure_time % 60)
     ) + (' to ' + next_departure_dest if with_destination else '')
+
+
+def get_destination(entry):
+    if 'destinationName' in entry:
+        return entry['destinationName']
+    else:
+        if 'towards' in entry:
+            return entry['towards']
+    return ''
