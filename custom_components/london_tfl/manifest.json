@@ -5,6 +5,7 @@
   "documentation": "https://github.com/morosanmihail/London-TfL",
   "domain": "london_tfl",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/morosanmihail/HA-LondonTfL/issues",
   "name": "London TfL Sensor",
   "requirements": [],
   "version": "0.1.3"
