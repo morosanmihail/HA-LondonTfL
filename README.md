@@ -13,6 +13,10 @@ After, of course, creating a new folder in there called `london_tfl`, where all 
 Sensor state is the next train departure time from the given station and platform (if set).
 Attributes contain up to `max` departures.
 
+You can add integration via the Integrations menu by searching for `London TfL`. 
+
+Alternatively, you can set it up manually in your `configuration.yaml`.
+
 Demo configuration:
 
 ```
@@ -28,8 +32,6 @@ sensor:
         max: 3  # Optional. 3 items by default
 ```
 
-Alternatively, you can add integration via the Integrations menu by searching for `London TfL`. 
-There is, unfortunately, a bug currently with no form hints being displayed.
 
 Also available is support for the Upcoming Media card.
 Random, yes, but it works as a decent visualiser of all upcoming times.
