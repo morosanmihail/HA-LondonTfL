@@ -84,4 +84,4 @@ TODO:
 - Expand with `/Journey/JourneyResults` API
 
 Known issues:
-- Some stations do not report any data (either at all, or during periods of disruption) via the `Line/Arrivals` API. This results in no results being returned to the sensor. The workaround will be to use the `Journey/JourneyResults` API at a later date.
+- Config Flow does not have any form hints. This means you don't actually know what you're filling in. Solved by setting up as a manual sensor or remembering it's `line`, `station`, `max` then `platform` when adding via Integrations.

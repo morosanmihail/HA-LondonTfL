@@ -1,0 +1,34 @@
+{
+  "config": {
+    "error": {
+        "test" : "Test error."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "station": "TfL Station",
+          "line": "TfL Line",
+          "add_another": "Add another station?"
+        },
+        "description": "Enter the station and line you would like to follow.",
+        "title": "London TfL"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_path": "The path provided is not valid. Should be in the format `user/repo-name` and should be a valid github repository."
+    },
+    "step": {
+      "init": {
+        "title": "Manage Repos",
+        "data": {
+          "repos": "Existing Repos: Uncheck any repos you want to remove.",
+          "path": "New Repo: Path to the repository e.g. home-assistant-core",
+          "name": "New Repo: Name of the sensor."
+        },
+        "description": "Remove existing repos or add a new repo."
+      }
+    }
+  }
+}

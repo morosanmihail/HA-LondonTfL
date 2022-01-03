@@ -1,0 +1,20 @@
+{
+  "config": {
+    "error": {
+      "test": "Test error."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "station": "TfL Station",
+          "line": "TfL Line",
+          "max": "Maximum number of departures to report",
+          "platform": "Filter by platform",
+          "add_another": "Add another station?"
+        },
+        "description": "Enter the station and line you would like to follow.",
+        "title": "London TfL"
+      }
+    }
+  }
+}

@@ -3,9 +3,12 @@ from __future__ import annotations
 
 import aiohttp
 import async_timeout
+import logging
 import json
+import uuid
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
+from datetime import timedelta, datetime
 from dateutil import parser
 from homeassistant.components.sensor import SensorEntity, PLATFORM_SCHEMA
 from homeassistant.const import CONF_NAME
@@ -13,39 +16,85 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from .const import (
+from .const import  (
     CONF_STOPS,
-    CONFIG_STOP,
+    CONF_LINE,
+    CONF_STATION,
+    CONF_PLATFORM,
+    CONF_MAX,
+    DEFAULT_MAX,
+    DEFAULT_NAME,
     LINE_IMAGES,
-    DEFAULT_NAME
+    DOMAIN
 )
+
+
+_LOGGER = logging.getLogger(__name__)
+SCAN_INTERVAL = timedelta(minutes=1)
+
+
+CONFIG_STOP = vol.Schema({
+    vol.Required(CONF_LINE): cv.string,
+    vol.Required(CONF_STATION): cv.string,
+    vol.Optional(CONF_PLATFORM, default=''): cv.string,
+    vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
+})
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Required(CONF_STOPS): vol.All(cv.ensure_list, [CONFIG_STOP]),
 })
 
-def setup_platform(
+
+async def async_setup_entry(
+    hass: core.HomeAssistant,
+    config_entry: config_entries.ConfigEntry,
+    async_add_entities,
+):
+    """Setup sensors from a config entry created in the integrations UI."""
+    config = hass.data[DOMAIN][config_entry.entry_id]
+
+    name = config[CONF_NAME] if CONF_NAME in config else DEFAULT_NAME
+    stops = config[CONF_STOPS]
+
+    sensors = []
+    for stop in stops:
+        if stop['station'] != None and stop['line'] != None:
+            sensors.append(
+                LondonTfLSensor(
+                    name,
+                    stop['line'],
+                    stop['station'],
+                    stop['platform'] if 'platform' in stop else '',
+                    stop['max'] if 'max' in stop else DEFAULT_MAX,
+                ))
+
+    async_add_entities(sensors, update_before_add=True)
+
+
+async def async_setup_platform(
     hass: HomeAssistant,
     config: ConfigType,
-    add_entities: AddEntitiesCallback,
+    async_add_entities: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType | None = None
 ) -> None:
     """Set up the sensor platform."""
     name = config.get(CONF_NAME)
     stops = config.get(CONF_STOPS)
 
+    sensors = []
     for stop in stops:
         if stop['station'] != None and stop['line'] != None:
-            add_entities(
-                [LondonTfLSensor(
+            sensors.append(
+                LondonTfLSensor(
                     name,
                     stop['line'],
                     stop['station'],
                     stop['platform'],
                     stop['max'],
-                )]
-        )
+                ))
+    async_add_entities(sensors, update_before_add=True)
+
 
 class LondonTfLSensor(SensorEntity):
     """Representation of a Sensor."""
@@ -60,8 +109,10 @@ class LondonTfLSensor(SensorEntity):
         self.max_items = int(max)
 
         self._state = None
+        self._raw_result = []
         self._api_json = []
         self._destination = ''
+        self._last_update = None
 
     @property
     def unique_id(self):
@@ -86,26 +137,47 @@ class LondonTfLSensor(SensorEntity):
         This is the only method that should fetch new data for Home Assistant.
         """
 
-        url_base = 'https://api.tfl.gov.uk/line/{0}/arrivals/{1}'.format(
+        need_call = True
+        if len(self._raw_result) > 0:
+            # check if there are enough already stored to skip a request
+            now = datetime.now().timestamp()
+            after_now = [
+                item for item in self._raw_result
+                if parser.parse(item['expectedArrival']).timestamp() > now
+            ]
+
+            if len(after_now) >= self.max_items:
+                self._raw_result = after_now
+                need_call = False
+
+        url_base = 'https://api.tfl.gov.uk/line/{0}/arrivals/{1}?test={2}'.format(
             self.line,
-            self.station
+            self.station,
+            str(uuid.uuid4())
         )
 
-        try:
-            result = await request(url_base, self)
-            if not result:
+        if need_call:
+            try:
+                result = await request(url_base, self)
+                if not result:
+                    _LOGGER.warning('There was no reply from TfL servers.')
+                    self._state = 'Cannot reach TfL'
+                    return
+                result = json.loads(result)
+            except OSError:
+                _LOGGER.warning('Something broke.')
                 self._state = 'Cannot reach TfL'
                 return
-            result = json.loads(result)
-        except OSError:
-            self._state = 'Cannot reach TfL'
-            return
 
-        self._api_json = result
-        if self.filter_platform != '':
-            self._api_json = [item for item in self._api_json if item['platformName'] == self.filter_platform]
+            if self.filter_platform != '':
+                self._raw_result = [item for item in result if item['platformName'] == self.filter_platform]
+            else:
+                self._raw_result = result
+
+            self._last_update = datetime.now()
+
         self._api_json = sorted(
-            self._api_json, key=lambda i: i['expectedArrival'], reverse=False
+            self._raw_result, key=lambda i: i['expectedArrival'], reverse=False
         )[:self.max_items]
 
         if len(self._api_json) > 0:
@@ -116,6 +188,8 @@ class LondonTfLSensor(SensorEntity):
     @property
     def extra_state_attributes(self):
         attributes = {}
+
+        attributes['LastUpdate'] = self._last_update
 
         if len(self._api_json) == 0:
             return attributes
@@ -143,7 +217,7 @@ class LondonTfLSensor(SensorEntity):
             data.append({
                 'title': departure['Destination'],
                 'airdate': item['expectedArrival'],
-                'fanart': LINE_IMAGES[self.line],
+                'fanart': LINE_IMAGES[self.line] if self.line in LINE_IMAGES else LINE_IMAGES['default'],
                 'flag': True,
             })
 
