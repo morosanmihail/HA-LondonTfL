@@ -235,7 +235,9 @@ class LondonTfLSensor(SensorEntity):
 
 
 def time_to_station(entry, with_destination = True, style = '{0}m {1}s'):
-    next_departure_time = entry['timeToStation']
+    next_departure_time = (
+        parser.parse(entry['expectedArrival']).replace(tzinfo=None) - datetime.now().replace(tzinfo=None)
+    ).seconds
     next_departure_dest = entry['destinationName']
     return style.format(
         int(next_departure_time / 60),
@@ -245,7 +247,7 @@ def time_to_station(entry, with_destination = True, style = '{0}m {1}s'):
 
 async def fetch(session, url):
     try:
-        with async_timeout.timeout(2):
+        with async_timeout.timeout(15):
             async with session.get(
                 url, headers={
                     "Accept": "application/json"
