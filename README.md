@@ -62,20 +62,18 @@ card_mod:
       padding: 0px !important;
     }
 
-    .dlr__fanart {
+    .lond_fanart {
       border-radius: var(--ha-card-border-radius, 4px);
       background-color: rgb(100, 100, 100);
       background-blend-mode: multiply;
       height: 80px;
     }
 
-    .dlr__fan_fanart {
+    .lond_fan_fanart {
       background: none !important;
       box-shadow: none !important;
     }
 ```
-
-Change `dlr__fanart` and `dlr__fan_fanart` as your sensor requires.
 
 
 TODO:
