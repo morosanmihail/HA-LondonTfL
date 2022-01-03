@@ -85,6 +85,3 @@ TODO:
 - Add support as a custom HACS repo
 - Explain how to get station codes
 - Expand with `/Journey/JourneyResults` API
-
-Known issues:
-- Config Flow does not have any form hints. This means you don't actually know what you're filling in. Solved by setting up as a manual sensor or remembering it's `line`, `station`, `max` then `platform` when adding via Integrations.
