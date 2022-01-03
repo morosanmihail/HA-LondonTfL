@@ -1,8 +1,6 @@
 """Platform for sensor integration."""
 from __future__ import annotations
 
-import aiohttp
-import async_timeout
 import logging
 import json
 import uuid
@@ -10,13 +8,14 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from datetime import timedelta, datetime
 from dateutil import parser
+from homeassistant import config_entries, core
 from homeassistant.components.sensor import SensorEntity, PLATFORM_SCHEMA
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from .const import  (
+from .const import (
     CONF_STOPS,
     CONF_LINE,
     CONF_STATION,
@@ -27,6 +26,7 @@ from .const import  (
     LINE_IMAGES,
     DOMAIN
 )
+from .network import request
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ async def async_setup_entry(
 
     sensors = []
     for stop in stops:
-        if stop['station'] != None and stop['line'] != None:
+        if stop['station'] is not None and stop['line'] is not None:
             sensors.append(
                 LondonTfLSensor(
                     name,
@@ -84,7 +84,7 @@ async def async_setup_platform(
 
     sensors = []
     for stop in stops:
-        if stop['station'] != None and stop['line'] != None:
+        if stop['station'] is not None and stop['line'] is not None:
             sensors.append(
                 LondonTfLSensor(
                     name,
@@ -105,7 +105,9 @@ class LondonTfLSensor(SensorEntity):
         self._name = name + '_' + line + '_' + station
         self.line = line
         self.station = station
-        self.filter_platform = platform_filter.strip() if platform_filter != None else ''
+        self.filter_platform = (
+            platform_filter.strip() if platform_filter is not None else ''
+        )
         self.max_items = int(max)
 
         self._state = None
@@ -150,7 +152,8 @@ class LondonTfLSensor(SensorEntity):
                 self._raw_result = after_now
                 need_call = False
 
-        url_base = 'https://api.tfl.gov.uk/line/{0}/arrivals/{1}?test={2}'.format(
+        url_base = 'https://api.tfl.gov.uk/line/{0}/arrivals/{1}?test={2}'
+        url_base = url_base.format(
             self.line,
             self.station,
             str(uuid.uuid4())
@@ -170,7 +173,10 @@ class LondonTfLSensor(SensorEntity):
                 return
 
             if self.filter_platform != '':
-                self._raw_result = [item for item in result if item['platformName'] == self.filter_platform]
+                self._raw_result = [
+                    item for item in result
+                    if item['platformName'] == self.filter_platform
+                ]
             else:
                 self._raw_result = result
 
@@ -181,7 +187,9 @@ class LondonTfLSensor(SensorEntity):
         )[:self.max_items]
 
         if len(self._api_json) > 0:
-            self._state = parser.parse(self._api_json[0]['expectedArrival']).strftime('%H:%M')
+            self._state = parser.parse(
+                self._api_json[0]['expectedArrival']
+            ).strftime('%H:%M')
         else:
             self._state = 'None'
 
@@ -217,12 +225,18 @@ class LondonTfLSensor(SensorEntity):
             data.append({
                 'title': departure['Destination'],
                 'airdate': item['expectedArrival'],
-                'fanart': LINE_IMAGES[self.line] if self.line in LINE_IMAGES else LINE_IMAGES['default'],
+                'fanart': (
+                    LINE_IMAGES[self.line]
+                    if self.line in LINE_IMAGES
+                    else LINE_IMAGES['default']
+                ),
                 'flag': True,
             })
 
             if index == 0:
-                attributes['remaining'] = time_to_station(self._api_json[0], False, '0:{0}:{1}')
+                attributes['remaining'] = (
+                    time_to_station(self._api_json[0], False, '0:{0}:{1}')
+                )
                 attributes['expected'] = exp_time
                 attributes['destination'] = item['destinationName']
                 self._destination = item['destinationName']
@@ -234,30 +248,13 @@ class LondonTfLSensor(SensorEntity):
         return attributes
 
 
-def time_to_station(entry, with_destination = True, style = '{0}m {1}s'):
+def time_to_station(entry, with_destination=True, style='{0}m {1}s'):
     next_departure_time = (
-        parser.parse(entry['expectedArrival']).replace(tzinfo=None) - datetime.now().replace(tzinfo=None)
+        parser.parse(entry['expectedArrival']).replace(tzinfo=None) -
+        datetime.now().replace(tzinfo=None)
     ).seconds
     next_departure_dest = entry['destinationName']
     return style.format(
         int(next_departure_time / 60),
         int(next_departure_time % 60)
     ) + (' to ' + next_departure_dest if with_destination else '')
-
-
-async def fetch(session, url):
-    try:
-        with async_timeout.timeout(15):
-            async with session.get(
-                url, headers={
-                    "Accept": "application/json"
-                }
-            ) as response:
-                return await response.text()
-    except:
-        pass
-
-
-async def request(url, self):
-    async with aiohttp.ClientSession() as session:
-        return await fetch(session, url)
