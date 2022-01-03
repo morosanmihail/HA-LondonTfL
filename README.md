@@ -10,7 +10,7 @@ Each station creates its own sensor.
 Just drop into your `custom_components` folder.
 After, of course, creating a new folder in there called `london_tfl`, where all the files in this repo will live in.
 
-Sensor state is the next train departure time from the given station.
+Sensor state is the next train departure time from the given station and platform (if set).
 Attributes contain up to `max` departures.
 
 Demo configuration:
