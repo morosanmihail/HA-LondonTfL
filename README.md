@@ -14,8 +14,9 @@ Sensor state is the next train departure time from the given station and platfor
 Attributes contain up to `max` departures.
 
 You can add integration via the Integrations menu by searching for `London TfL`. 
+It will auto-populate the line list, then auto-populate the station list with all stations on that line.
 
-Alternatively, you can set it up manually in your `configuration.yaml`.
+Alternatively, you can set it up manually in your `configuration.yaml`, though this is no longer recommended, as getting a station's Naptan ID is not trivial.
 
 Demo configuration:
 
@@ -83,5 +84,4 @@ card_mod:
 
 TODO:
 - Add support as a custom HACS repo
-- Explain how to get station codes
 - Expand with `/Journey/JourneyResults` API
