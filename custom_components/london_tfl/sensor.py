@@ -24,7 +24,8 @@ from .const import (
     DEFAULT_MAX,
     DEFAULT_NAME,
     LINE_IMAGES,
-    DOMAIN
+    DOMAIN,
+    TFL_ARRIVALS_URL
 )
 from .network import request
 
@@ -152,8 +153,7 @@ class LondonTfLSensor(SensorEntity):
                 self._raw_result = after_now
                 need_call = False
 
-        url_base = 'https://api.tfl.gov.uk/line/{0}/arrivals/{1}?test={2}'
-        url_base = url_base.format(
+        url_base = TFL_ARRIVALS_URL.format(
             self.line,
             self.station,
             str(uuid.uuid4())

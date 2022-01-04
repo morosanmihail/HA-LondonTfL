@@ -13,7 +13,9 @@ from .const import (
     CONF_MAX,
     CONF_PLATFORM,
     DEFAULT_MAX,
-    DOMAIN
+    DOMAIN,
+    TFL_LINES_URL,
+    TFL_STATIONS_URL
 )
 from .network import request
 
@@ -44,11 +46,9 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             return await self.async_step_station()
 
-        lines_url = 'https://api.tfl.gov.uk/line/mode/tube,dlr'
-
         lines = DEFAULT_LINES
         try:
-            result = await request(lines_url, self)
+            result = await request(TFL_LINES_URL, self)
             if not result:
                 _LOGGER.warning('There was no reply from TfL servers.')
                 errors['base'] = 'request'
@@ -89,7 +89,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             return self.async_create_entry(title='London TfL', data=self.data)
 
-        stations_url = 'https://api.tfl.gov.uk/line/{0}/stoppoints'.format(
+        stations_url = TFL_STATIONS_URL.format(
             self.data['lastLine']
         )
 
