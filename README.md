@@ -1,22 +1,36 @@
-# HA-LondonTfL
+# HA-LondonTfL - Home Assistant London TfL Integration
 
-WARNING: still under construction and subject to change often
+**WARNING**: still under construction and subject to change often
 
-![Departure details from Canning Town Station Platform 4](https://github.com/morosanmihail/HA-LondonTfL/blob/main/images/example_2.png?raw=true)
+![Example of Upcoming Media Card](https://github.com/morosanmihail/HA-LondonTfL/blob/main/images/upcoming_media_2.png?raw=true)
+
+## Introduction
 
 Simple Home Assistant sensor to retrieve departures from Transport for London stations.
 Each station creates its own sensor.
 
+## Installation
+
 Just drop into your `custom_components` folder.
 After, of course, creating a new folder in there called `london_tfl`, where all the files in this repo will live in.
 
-Sensor state is the next train departure time from the given station and platform (if set).
-Attributes contain up to `max` departures.
-Sensor name will change to the name of the first departure's destination station.
-If you do not want this behaviour, you can change the name of the sensor manually.
+HACS support will come further down the line.
+
+## Setup
 
 You can add integration via the Integrations menu by searching for `London TfL`.
 It will auto-populate the line list, then auto-populate the station list with all stations on that line.
+It will allow you to add as many stations as needed.
+
+Sensor state is the next train departure time from the given station and platform (if set).
+Attributes contain up to `max` departures.
+
+Sensor name will change to the name of the first departure's destination station.
+If you do not want this behaviour, you can change the name of the sensor manually.
+
+![Departure details from Canary Wharf Jubilee station](https://github.com/morosanmihail/HA-LondonTfL/blob/main/images/example_2.png?raw=true)
+
+### Alternate setup
 
 Alternatively, you can set it up manually in your `configuration.yaml`, though this is no longer recommended, as getting a station's Naptan ID is not trivial.
 
@@ -35,6 +49,9 @@ sensor:
         max: 3  # Optional. 3 items by default
 ```
 
+## Viewing
+
+Default use case is to set up either with an Entity (or Entities) card, or a Markdown card and pull whichever data is important to you.
 
 Also available is support for the Upcoming Media card.
 Random, yes, but it works as a decent visualiser of all upcoming times.
@@ -44,7 +61,7 @@ Random, yes, but it works as a decent visualiser of all upcoming times.
 For reference, this also uses `card-mod` to make it look slightly nicer with the less information provided.
 
 ```
-entity: sensor.dlr_from_royal_victoria_dlr_940gzzdlcgt
+entity: sensor.london_tfl_jubilee_940gzzlucyf
 image_style: fanart
 max: 3
 title: TFL
@@ -54,11 +71,6 @@ box_shadows: false
 border_color: none
 title_size: small
 line1_size: little
-title_text: To $title
-line1_text: at $time
-line2_text: ' '
-line3_text: ' '
-line4_text: ' '
 card_mod:
   style: |
     .type-custom-upcoming-media-card {
@@ -84,6 +96,6 @@ card_mod:
 ```
 
 
-TODO:
+## TODO
+
 - Add support as a custom HACS repo
-- Expand with `/Journey/JourneyResults` API
