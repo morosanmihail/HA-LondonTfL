@@ -12,6 +12,8 @@ After, of course, creating a new folder in there called `london_tfl`, where all 
 
 Sensor state is the next train departure time from the given station and platform (if set).
 Attributes contain up to `max` departures.
+Sensor name will change to the name of the first departure's destination station. 
+If you do not want this behaviour, you can change the name of the sensor manually.
 
 You can add integration via the Integrations menu by searching for `London TfL`. 
 It will auto-populate the line list, then auto-populate the station list with all stations on that line.
