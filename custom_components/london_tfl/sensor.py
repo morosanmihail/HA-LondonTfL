@@ -25,7 +25,8 @@ from .const import (
     DEFAULT_NAME,
     LINE_IMAGES,
     DOMAIN,
-    TFL_ARRIVALS_URL
+    TFL_ARRIVALS_URL,
+    get_line_image
 )
 from .network import request
 
@@ -141,17 +142,21 @@ class LondonTfLSensor(SensorEntity):
         """
 
         need_call = True
-        if len(self._raw_result) > 0:
-            # check if there are enough already stored to skip a request
-            now = datetime.now().timestamp()
-            after_now = [
-                item for item in self._raw_result
-                if parser.parse(item['expectedArrival']).timestamp() > now
-            ]
+        try:
+            if len(self._raw_result) > 0:
+                # check if there are enough already stored to skip a request
+                now = datetime.now().timestamp()
+                after_now = [
+                    item for item in self._raw_result
+                    if parser.parse(item['expectedArrival']).timestamp() > now
+                ]
 
-            if len(after_now) >= self.max_items:
-                self._raw_result = after_now
-                need_call = False
+                if len(after_now) >= self.max_items:
+                    self._raw_result = after_now
+                    need_call = False
+        except TypeError:
+            _LOGGER.warning('Something happened while saving calls to API')
+            need_call = True
 
         url_base = TFL_ARRIVALS_URL.format(
             self.line,
@@ -206,7 +211,7 @@ class LondonTfLSensor(SensorEntity):
             {
                 'title_default': 'To $title',
                 'line1_default': 'at $time',
-                'line2_default': '',
+                'line2_default': '$studio',
                 'line3_default': '',
                 'line4_default': '',
                 'icon': 'mdi:train',
@@ -216,30 +221,35 @@ class LondonTfLSensor(SensorEntity):
         index = 0
         for item in self._api_json:
             departure = {}
-            departure['Destination'] = get_destination(item)
+            departure['destination_name'] = get_destination(item)
             exp_time = parser.parse(item['expectedArrival']).strftime('%H:%M')
-            departure['ExpectedTime'] = exp_time
-            departure['TimeToStation'] = time_to_station(item, False)
+            departure['scheduled'] = exp_time
+            departure['estimated'] = exp_time
+            departure['time_to_station'] = time_to_station(item, False)
+            departure['platform'] = (
+                item['platformName'] if 'platformName' in item else ''
+            )
+
             attributes['{0}'.format(index)] = departure
 
             data.append({
-                'title': departure['Destination'],
+                'title': departure['destination_name'],
                 'airdate': item['expectedArrival'],
-                'fanart': (
-                    LINE_IMAGES[self.line]
-                    if self.line in LINE_IMAGES
-                    else LINE_IMAGES['default']
-                ),
+                'fanart': get_line_image(self.line),
                 'flag': True,
+                'studio': departure['platform'],
             })
 
             if index == 0:
                 attributes['remaining'] = (
                     time_to_station(self._api_json[0], False, '0:{0}:{1}')
                 )
-                attributes['expected'] = exp_time
-                attributes['destination'] = departure['Destination']
-                self._destination = departure['Destination']
+                attributes['scheduled'] = exp_time
+                attributes['estimated'] = exp_time
+                attributes['destination_name'] = departure['destination_name']
+                attributes['platform'] = departure['platform']
+                attributes['station_name'] = item['stationName']
+                self._destination = departure['destination_name']
 
             index = index + 1
 

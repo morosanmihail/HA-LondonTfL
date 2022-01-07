@@ -19,3 +19,6 @@ LINE_IMAGES = {
 TFL_LINES_URL = 'https://api.tfl.gov.uk/line/mode/tube,dlr,overground,cable-car,tflrail,tram'  # noqa
 TFL_ARRIVALS_URL = 'https://api.tfl.gov.uk/line/{0}/arrivals/{1}?test={2}'
 TFL_STATIONS_URL = 'https://api.tfl.gov.uk/line/{0}/stoppoints'
+
+def get_line_image(line):
+    return LINE_IMAGES[line] if line in LINE_IMAGES else LINE_IMAGES['default']
