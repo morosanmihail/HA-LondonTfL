@@ -6,8 +6,7 @@ import json
 import uuid
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
-from datetime import timedelta, datetime
-from dateutil import parser
+from datetime import timedelta
 from homeassistant import config_entries, core
 from homeassistant.components.sensor import SensorEntity, PLATFORM_SCHEMA
 from homeassistant.const import CONF_NAME
@@ -16,19 +15,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from .const import (
-    CONF_STOPS,
-    CONF_LINE,
-    CONF_STATION,
-    CONF_PLATFORM,
-    CONF_MAX,
-    DEFAULT_MAX,
-    DEFAULT_NAME,
-    LINE_IMAGES,
-    DOMAIN,
-    TFL_ARRIVALS_URL,
-    get_line_image
+    CONF_STOPS, CONF_LINE, CONF_STATION, CONF_PLATFORM,
+    CONF_MAX, DEFAULT_ICON, DEFAULT_MAX, DEFAULT_NAME, DOMAIN,
+    TFL_ARRIVALS_URL, get_line_image
 )
 from .network import request
+from .tfl_data import TfLData
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -113,10 +105,8 @@ class LondonTfLSensor(SensorEntity):
         self.max_items = int(max)
 
         self._state = None
-        self._raw_result = []
-        self._api_json = []
         self._destination = ''
-        self._last_update = None
+        self._tfl_data = TfLData()
 
     @property
     def unique_id(self):
@@ -124,12 +114,20 @@ class LondonTfLSensor(SensorEntity):
 
     @property
     def name(self) -> str:
-        return self._destination if self._destination else self._name
+        station = self._tfl_data.get_station_name()
+        if self._destination and station:
+            return "{0} to {1}".format(
+                station,
+                self._destination
+            )
+        if station:
+            return "{0} - Idle".format(station)
+        return self._name
 
     @property
     def icon(self):
         """Icon of the sensor."""
-        return "mdi:train"
+        return DEFAULT_ICON
 
     @property
     def state(self):
@@ -141,30 +139,13 @@ class LondonTfLSensor(SensorEntity):
         This is the only method that should fetch new data for Home Assistant.
         """
 
-        need_call = True
-        try:
-            if len(self._raw_result) > 0:
-                # check if there are enough already stored to skip a request
-                now = datetime.now().timestamp()
-                after_now = [
-                    item for item in self._raw_result
-                    if parser.parse(item['expectedArrival']).timestamp() > now
-                ]
-
-                if len(after_now) >= self.max_items:
-                    self._raw_result = after_now
-                    need_call = False
-        except TypeError:
-            _LOGGER.warning('Something happened while saving calls to API')
-            need_call = True
-
         url_base = TFL_ARRIVALS_URL.format(
             self.line,
             self.station,
             str(uuid.uuid4())
         )
 
-        if need_call:
+        if self._tfl_data.is_data_stale(self.max_items):
             try:
                 result = await request(url_base, self)
                 if not result:
@@ -176,35 +157,17 @@ class LondonTfLSensor(SensorEntity):
                 _LOGGER.warning('Something broke.')
                 self._state = 'Cannot reach TfL'
                 return
+            self._tfl_data.populate(result, self.filter_platform)
 
-            if self.filter_platform != '':
-                self._raw_result = [
-                    item for item in result
-                    if item['platformName'] == self.filter_platform
-                ]
-            else:
-                self._raw_result = result
-
-            self._last_update = datetime.now()
-
-        self._api_json = sorted(
-            self._raw_result, key=lambda i: i['expectedArrival'], reverse=False
-        )[:self.max_items]
-
-        if len(self._api_json) > 0:
-            self._state = parser.parse(
-                self._api_json[0]['expectedArrival']
-            ).strftime('%H:%M')
-        else:
-            self._state = 'None'
+        self._tfl_data.sort_data(self.max_items)
+        self._state = self._tfl_data.get_state()
 
     @property
     def extra_state_attributes(self):
         attributes = {}
+        attributes['LastUpdate'] = self._tfl_data.get_last_update()
 
-        attributes['LastUpdate'] = self._last_update
-
-        if len(self._api_json) == 0:
+        if self._tfl_data.is_empty():
             return attributes
 
         data = [
@@ -218,62 +181,25 @@ class LondonTfLSensor(SensorEntity):
             }
         ]
 
-        index = 0
-        for item in self._api_json:
-            departure = {}
-            departure['destination_name'] = get_destination(item)
-            exp_time = parser.parse(item['expectedArrival']).strftime('%H:%M')
-            departure['scheduled'] = exp_time
-            departure['estimated'] = exp_time
-            departure['time_to_station'] = time_to_station(item, False)
-            departure['platform'] = (
-                item['platformName'] if 'platformName' in item else ''
-            )
-
+        for index, departure in enumerate(self._tfl_data.get_departures()):
             attributes['{0}'.format(index)] = departure
 
             data.append({
                 'title': departure['destination_name'],
-                'airdate': item['expectedArrival'],
+                'airdate': departure['scheduled'],
                 'fanart': get_line_image(self.line),
                 'flag': True,
                 'studio': departure['platform'],
             })
 
             if index == 0:
-                attributes['remaining'] = (
-                    time_to_station(self._api_json[0], False, '0:{0}:{1}')
-                )
-                attributes['scheduled'] = exp_time
-                attributes['estimated'] = exp_time
+                attributes['scheduled'] = departure['scheduled']
+                attributes['estimated'] = departure['estimated']
                 attributes['destination_name'] = departure['destination_name']
                 attributes['platform'] = departure['platform']
-                attributes['station_name'] = item['stationName']
                 self._destination = departure['destination_name']
 
-            index = index + 1
-
+        attributes['station_name'] = self._tfl_data.get_station_name()
         attributes['data'] = data
 
         return attributes
-
-
-def time_to_station(entry, with_destination=True, style='{0}m {1}s'):
-    next_departure_time = (
-        parser.parse(entry['expectedArrival']).replace(tzinfo=None) -
-        datetime.now().replace(tzinfo=None)
-    ).seconds
-    next_departure_dest = get_destination(entry)
-    return style.format(
-        int(next_departure_time / 60),
-        int(next_departure_time % 60)
-    ) + (' to ' + next_departure_dest if with_destination else '')
-
-
-def get_destination(entry):
-    if 'destinationName' in entry:
-        return entry['destinationName']
-    else:
-        if 'towards' in entry:
-            return entry['towards']
-    return ''

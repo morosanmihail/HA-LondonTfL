@@ -1,6 +1,7 @@
 DOMAIN = 'london_tfl'
 
 DEFAULT_NAME = 'London TfL'
+DEFAULT_ICON = 'mdi:train'
 CONF_STOPS = 'stops'
 
 CONF_LINE = 'line'
