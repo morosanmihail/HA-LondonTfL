@@ -13,10 +13,9 @@ Each station creates its own sensor.
 
 ## Installation
 
-Just drop into your `custom_components` folder.
-After, of course, creating a new folder in there called `london_tfl`, where all the files in this repo will live in.
+You can add this repository as a custom repository in HACS, then find it in the Integrations page!
 
-HACS support will come further down the line.
+Alternatively, you can manually drop it into your `custom_components` folder.
 
 ## Setup
 
@@ -96,8 +95,3 @@ card_mod:
       box-shadow: none !important;
     }
 ```
-
-
-## TODO
-
-- Add support as a custom HACS repo
