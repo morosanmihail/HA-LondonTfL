@@ -11,7 +11,8 @@ Each station creates its own sensor.
 
 ## Installation
 
-You can add this repository as a custom repository in HACS, then find it in the Integrations page!
+Easiest method is to get it via HACS! If you're unfamiliar with HACS, go [here](https://hacs.xyz/docs/setup/prerequisites).
+Should be easily found under Integrations - `London TfL`.
 
 Alternatively, you can manually drop it into your `custom_components` folder.
 
