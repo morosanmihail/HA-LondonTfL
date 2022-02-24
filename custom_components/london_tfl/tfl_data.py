@@ -74,15 +74,21 @@ class TfLData:
     def get_departures(self):
         departures = []
         for item in self._api_json:
-            departure = {}
-            departure['destination_name'] = get_destination(item)
-            exp_time = parser.parse(item['expectedArrival']).strftime('%H:%M')
-            departure['scheduled'] = item['expectedArrival']
-            departure['estimated'] = exp_time
-            departure['time_to_station'] = time_to_station(item, False)
-            departure['platform'] = (
-                item['platformName'] if 'platformName' in item else ''
-            )
+            departure = {
+                'time_to_station': time_to_station(item, False),
+                'platform': (
+                    item['platformName'] if 'platformName' in item else ''
+                ),
+                'line': item['platformName'] if 'platformName' in item else '',
+                'direction': 0,
+                'departure': item['expectedArrival'],
+                'destination': get_destination(item),
+                'time': time_to_station(item, False, '{0}'),
+                'expected': item['expectedArrival'],
+                'type': 'Metros',
+                'groupofline': '',
+                'icon': 'mdi:train',
+            }
 
             departures.append(departure)
 

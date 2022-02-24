@@ -165,10 +165,12 @@ class LondonTfLSensor(SensorEntity):
     @property
     def extra_state_attributes(self):
         attributes = {}
-        attributes['LastUpdate'] = self._tfl_data.get_last_update()
+        attributes['last_refresh'] = self._tfl_data.get_last_update()
 
         if self._tfl_data.is_empty():
             return attributes
+
+        attributes['departures'] = self._tfl_data.get_departures()
 
         data = [
             {
@@ -182,22 +184,22 @@ class LondonTfLSensor(SensorEntity):
         ]
 
         for index, departure in enumerate(self._tfl_data.get_departures()):
-            attributes['{0}'.format(index)] = departure
-
             data.append({
-                'title': departure['destination_name'],
-                'airdate': departure['scheduled'],
+                'title': departure['destination'],
+                'airdate': departure['expected'],
                 'fanart': get_line_image(self.line),
                 'flag': True,
                 'studio': departure['platform'],
             })
 
             if index == 0:
-                attributes['scheduled'] = departure['scheduled']
-                attributes['estimated'] = departure['estimated']
-                attributes['destination_name'] = departure['destination_name']
+                attributes['expected'] = departure['expected']
+                attributes['destination'] = departure['destination']
                 attributes['platform'] = departure['platform']
-                self._destination = departure['destination_name']
+                self._destination = departure['destination']
+
+                attributes['next_departure_minutes'] = departure['time']
+                attributes['next_departure_time'] = departure['expected']
 
         attributes['station_name'] = self._tfl_data.get_station_name()
         attributes['data'] = data
