@@ -2,7 +2,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
-![Example of Upcoming Media Card](https://github.com/morosanmihail/HA-LondonTfL/blob/main/images/upcoming_media_2.png?raw=true)
+![Example of HASL Card](https://github.com/morosanmihail/HA-LondonTfL/blob/main/images/hasl_card.png?raw=true)
 
 ## Introduction
 
@@ -52,6 +52,10 @@ sensor:
 ## Viewing
 
 Default use case is to set up either with an Entity (or Entities) card, or a Markdown card and pull whichever data is important to you.
+
+Recently added, but not thoroughly tested, is support for the [HASL Departure Lovelace Card](https://github.com/hasl-sensor/lovelace-hasl-departure-card).
+
+![Example of HASL Card](https://github.com/morosanmihail/HA-LondonTfL/blob/main/images/hasl_card.png?raw=true)
 
 Also available is support for the Upcoming Media card.
 Random, yes, but it works as a decent visualiser of all upcoming times.
