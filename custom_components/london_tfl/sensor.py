@@ -100,7 +100,7 @@ class LondonTfLSensor(SensorEntity):
         self.line = line
         self.station = station
         self.filter_platform = (
-            platform_filter.strip() if platform_filter is not None else ''
+            platform_filter.strip() if platform_filter else ''
         )
         self.max_items = int(max)
 
@@ -110,7 +110,8 @@ class LondonTfLSensor(SensorEntity):
 
     @property
     def unique_id(self):
-        return self._platformname + '_' + self.line + '_' + self.station
+        filter_append = '' if not self.filter_platform else ('_' + self.filter_platform)
+        return self._platformname + '_' + self.line + '_' + self.station + filter_append
 
     @property
     def name(self) -> str:
