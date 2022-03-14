@@ -21,6 +21,7 @@ Alternatively, you can manually drop it into your `custom_components` folder.
 You can add integration via the Integrations menu by searching for `London TfL`.
 It will auto-populate the line list, then auto-populate the station list with all stations on that line.
 It will allow you to add as many stations as needed.
+The expected format for the platform filter is to use the full name of the platform (most often similar to `Platform 3`).
 
 Sensor state is the next train departure time from the given station and platform (if set).
 Attributes contain up to `max` departures.
