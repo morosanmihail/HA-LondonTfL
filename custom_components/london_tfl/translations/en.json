@@ -9,7 +9,7 @@
           "line": "TfL Line"
         },
         "description": "Select the line your station is part of.",
-        "title": "London TfL"
+        "title": "Line"
       },
       "station": {
         "data": {
@@ -19,7 +19,7 @@
           "add_another": "Add another station?"
         },
         "description": "Enter the station you would like to follow.",
-        "title": "London TfL"
+        "title": "Station"
       }
     }
   }
