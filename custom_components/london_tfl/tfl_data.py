@@ -14,7 +14,7 @@ def get_destination(entry):
 def time_to_station(entry, with_destination=True, style='{0}m {1}s'):
     next_departure_time = (
         parser.parse(entry['expectedArrival']).replace(tzinfo=None) -
-        datetime.now().replace(tzinfo=None)
+        datetime.utcnow().replace(tzinfo=None)
     ).seconds
     next_departure_dest = get_destination(entry)
     return style.format(
