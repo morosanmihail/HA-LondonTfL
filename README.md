@@ -48,6 +48,7 @@ sensor:
         station: 940GZZDLCGT
         platform: Platform 4  # Optional. All platforms by default
         max: 3  # Optional. 3 items by default
+        shortenStationNames: True # Optional. Some stations have "Underground Station" appended to it and you can remove it if you set this to true.
 ```
 
 ## Viewing

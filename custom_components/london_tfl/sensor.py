@@ -32,6 +32,7 @@ CONFIG_STOP = vol.Schema({
     vol.Required(CONF_STATION): cv.string,
     vol.Optional(CONF_PLATFORM, default=''): cv.string,
     vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
+    vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
 })
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -61,6 +62,7 @@ async def async_setup_entry(
                     stop['station'],
                     stop['platform'] if 'platform' in stop else '',
                     stop['max'] if 'max' in stop else DEFAULT_MAX,
+                    bool(stop[CONF_SHORTEN_STATION_NAMES]),
                 ))
 
     async_add_entities(sensors, update_before_add=True)
@@ -86,6 +88,7 @@ async def async_setup_platform(
                     stop['station'],
                     stop['platform'],
                     stop['max'],
+                    bool(stop[CONF_SHORTEN_STATION_NAMES]),
                 ))
     async_add_entities(sensors, update_before_add=True)
 
@@ -93,7 +96,7 @@ async def async_setup_platform(
 class LondonTfLSensor(SensorEntity):
     """Representation of a Sensor."""
 
-    def __init__(self, name, line, station, platform_filter, max):
+    def __init__(self, name, line, station, platform_filter, max, shortenStationNames):
         """Initialize the sensor."""
         self._platformname = name
         self._name = name + '_' + line + '_' + station
@@ -103,6 +106,7 @@ class LondonTfLSensor(SensorEntity):
             platform_filter.strip() if platform_filter else ''
         )
         self.max_items = int(max)
+        self.shortenStationNames = shortenStationNames
 
         self._state = None
         self._destination = ''
@@ -206,3 +210,10 @@ class LondonTfLSensor(SensorEntity):
         attributes['data'] = data
 
         return attributes
+
+    def shortenPlatformName(destinationName, shorten):
+        if self.shortenStationNames:
+            for to_replace in SHORTEN_STATION_NAMES:
+                return destinationName.replace(to_replace, "").trim()
+        else:
+            return destinationName
