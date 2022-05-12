@@ -5,6 +5,7 @@ DEFAULT_ICON = 'mdi:train'
 CONF_STOPS = 'stops'
 
 CONF_LINE = 'line'
+CONF_SHORTEN_STATION_NAMES = 'shortenStationNames'
 CONF_STATION = 'station'
 CONF_PLATFORM = 'platform'
 CONF_MAX = 'max'
@@ -21,6 +22,8 @@ LINE_IMAGES = {
 TFL_LINES_URL = 'https://api.tfl.gov.uk/line/mode/tube,dlr,overground,cable-car,tflrail,tram'  # noqa
 TFL_ARRIVALS_URL = 'https://api.tfl.gov.uk/line/{0}/arrivals/{1}?test={2}'
 TFL_STATIONS_URL = 'https://api.tfl.gov.uk/line/{0}/stoppoints'
+
+SHORTEN_STATION_NAMES = ["Underground Station"]
 
 def get_line_image(line):
     return LINE_IMAGES[line] if line in LINE_IMAGES else LINE_IMAGES['default']

@@ -10,6 +10,7 @@ from .const import (
     CONF_STOPS,
     CONF_STATION,
     CONF_LINE,
+    CONF_SHORTEN_STATION_NAMES,
     CONF_MAX,
     CONF_PLATFORM,
     DEFAULT_MAX,
@@ -33,7 +34,9 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         '''Initialize.'''
         self.data: dict[str, Any] = {
             CONF_STOPS: [],
-            'lastLine': ''
+            'lastLine': '',
+            'shortenStationNames': False,
+            'shortenPlatform Names': False
         }
 
     async def async_step_user(
@@ -43,6 +46,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: Dict[str, str] = {}
         if user_input is not None:
             self.data['lastLine'] = user_input[CONF_LINE]
+            self.data['shortenStationNames'] = user_input[CONF_SHORTEN_STATION_NAMES]
 
             return await self.async_step_station()
 
@@ -63,6 +67,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_LINE): vol.In(lines),
+                    vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
                 }
             ),
             errors=errors
@@ -112,6 +117,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_STATION): vol.In(stations),
+                    vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
                     vol.Optional(
                         CONF_MAX, default=DEFAULT_MAX
                     ): cv.positive_int,
