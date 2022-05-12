@@ -17,7 +17,7 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from .const import (
     CONF_STOPS, CONF_LINE, CONF_STATION, CONF_PLATFORM,
     CONF_MAX, DEFAULT_ICON, DEFAULT_MAX, DEFAULT_NAME, DOMAIN,
-    TFL_ARRIVALS_URL, get_line_image
+    TFL_ARRIVALS_URL, CONF_SHORTEN_STATION_NAMES, get_line_image
 )
 from .network import request
 from .tfl_data import TfLData
@@ -62,7 +62,11 @@ async def async_setup_entry(
                     stop['station'],
                     stop['platform'] if 'platform' in stop else '',
                     stop['max'] if 'max' in stop else DEFAULT_MAX,
-                    bool(stop[CONF_SHORTEN_STATION_NAMES]),
+                    (
+                        bool(stop[CONF_SHORTEN_STATION_NAMES])
+                        if CONF_SHORTEN_STATION_NAMES in stop
+                        else False
+                    )
                 ))
 
     async_add_entities(sensors, update_before_add=True)
