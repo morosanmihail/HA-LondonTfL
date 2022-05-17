@@ -16,7 +16,8 @@
           "station": "TfL Station",
           "max": "Maximum number of departures to report",
           "platform": "Filter by platform",
-          "add_another": "Add another station?"
+          "add_another": "Add another station?",
+          "shortenStationNames": "Shorten station names?"
         },
         "description": "Enter the station you would like to follow.",
         "title": "Station"

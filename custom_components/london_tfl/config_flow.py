@@ -34,9 +34,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         '''Initialize.'''
         self.data: dict[str, Any] = {
             CONF_STOPS: [],
-            'lastLine': '',
-            'shortenStationNames': False,
-            'shortenPlatform Names': False
+            'lastLine': ''
         }
 
     async def async_step_user(
@@ -46,8 +44,6 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: Dict[str, str] = {}
         if user_input is not None:
             self.data['lastLine'] = user_input[CONF_LINE]
-            self.data['shortenStationNames'] = user_input[CONF_SHORTEN_STATION_NAMES]
-
             return await self.async_step_station()
 
         lines = DEFAULT_LINES
@@ -67,7 +63,6 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_LINE): vol.In(lines),
-                    vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
                 }
             ),
             errors=errors
@@ -81,10 +76,11 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self.data[CONF_STOPS].append(
                 {
-                    'line': self.data['lastLine'],
-                    'station': user_input[CONF_STATION],
-                    'max': user_input[CONF_MAX],
-                    'platform': user_input[CONF_PLATFORM]
+                    CONF_LINE: self.data['lastLine'],
+                    CONF_STATION: user_input[CONF_STATION],
+                    CONF_MAX: user_input[CONF_MAX],
+                    CONF_PLATFORM: user_input[CONF_PLATFORM],
+                    CONF_SHORTEN_STATION_NAMES: user_input[CONF_SHORTEN_STATION_NAMES],
                 }
             )
             # If user ticked the box show this form again so they can add an

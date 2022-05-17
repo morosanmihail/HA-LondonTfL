@@ -1,33 +1,26 @@
 {
   "config": {
     "error": {
-        "test" : "Test error."
+      "request": "Failed to connect to TfL servers to retrieve data."
     },
     "step": {
       "user": {
         "data": {
-          "station": "TfL Station",
-          "line": "TfL Line",
-          "add_another": "Add another station?"
+          "line": "TfL Line"
         },
-        "description": "Enter the station and line you would like to follow.",
-        "title": "Station"
-      }
-    }
-  },
-  "options": {
-    "error": {
-      "invalid_path": "The path provided is not valid. Should be in the format `user/repo-name` and should be a valid github repository."
-    },
-    "step": {
-      "init": {
-        "title": "Manage Repos",
+        "description": "Select the line your station is part of.",
+        "title": "Line"
+      },
+      "station": {
         "data": {
-          "repos": "Existing Repos: Uncheck any repos you want to remove.",
-          "path": "New Repo: Path to the repository e.g. home-assistant-core",
-          "name": "New Repo: Name of the sensor."
+          "station": "TfL Station",
+          "max": "Maximum number of departures to report",
+          "platform": "Filter by platform",
+          "add_another": "Add another station?",
+          "shortenStationNames": "Shorten station names?"
         },
-        "description": "Remove existing repos or add a new repo."
+        "description": "Enter the station you would like to follow.",
+        "title": "Station"
       }
     }
   }

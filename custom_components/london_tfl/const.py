@@ -23,7 +23,15 @@ TFL_LINES_URL = 'https://api.tfl.gov.uk/line/mode/tube,dlr,overground,cable-car,
 TFL_ARRIVALS_URL = 'https://api.tfl.gov.uk/line/{0}/arrivals/{1}?test={2}'
 TFL_STATIONS_URL = 'https://api.tfl.gov.uk/line/{0}/stoppoints'
 
-SHORTEN_STATION_NAMES = ["Underground Station"]
+SHORTEN_STATION_NAMES = ['Underground Station', 'DLR Station']
+
 
 def get_line_image(line):
     return LINE_IMAGES[line] if line in LINE_IMAGES else LINE_IMAGES['default']
+
+
+def shortenName(destinationName):
+    result = destinationName
+    for to_replace in list(SHORTEN_STATION_NAMES):
+        result = result.replace(to_replace, '').strip()
+    return result

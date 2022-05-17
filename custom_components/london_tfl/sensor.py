@@ -17,7 +17,8 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from .const import (
     CONF_STOPS, CONF_LINE, CONF_STATION, CONF_PLATFORM,
     CONF_MAX, DEFAULT_ICON, DEFAULT_MAX, DEFAULT_NAME, DOMAIN,
-    TFL_ARRIVALS_URL, CONF_SHORTEN_STATION_NAMES, get_line_image
+    TFL_ARRIVALS_URL, CONF_SHORTEN_STATION_NAMES, get_line_image,
+    shortenName
 )
 from .network import request
 from .tfl_data import TfLData
@@ -54,21 +55,21 @@ async def async_setup_entry(
 
     sensors = []
     for stop in stops:
-        if stop['station'] is not None and stop['line'] is not None:
+        if stop[CONF_STATION] is not None and stop[CONF_LINE] is not None:
             sensors.append(
                 LondonTfLSensor(
-                    name,
-                    stop['line'],
-                    stop['station'],
-                    stop['platform'] if 'platform' in stop else '',
-                    stop['max'] if 'max' in stop else DEFAULT_MAX,
-                    (
-                        bool(stop[CONF_SHORTEN_STATION_NAMES])
+                    name=name,
+                    line=stop[CONF_LINE],
+                    station=stop[CONF_STATION],
+                    platform_filter=stop[CONF_PLATFORM] if CONF_PLATFORM in stop else '',
+                    max=stop[CONF_MAX] if CONF_MAX in stop else DEFAULT_MAX,
+                    shortenStationNames=(
+                        stop[CONF_SHORTEN_STATION_NAMES]
                         if CONF_SHORTEN_STATION_NAMES in stop
                         else False
                     )
-                ))
-
+                )
+            )
     async_add_entities(sensors, update_before_add=True)
 
 
@@ -84,16 +85,17 @@ async def async_setup_platform(
 
     sensors = []
     for stop in stops:
-        if stop['station'] is not None and stop['line'] is not None:
+        if stop[CONF_STATION] is not None and stop[CONF_LINE] is not None:
             sensors.append(
                 LondonTfLSensor(
                     name,
-                    stop['line'],
-                    stop['station'],
-                    stop['platform'],
-                    stop['max'],
-                    bool(stop[CONF_SHORTEN_STATION_NAMES]),
-                ))
+                    stop[CONF_LINE],
+                    stop[CONF_STATION],
+                    stop[CONF_PLATFORM],
+                    stop[CONF_MAX],
+                    stop[CONF_SHORTEN_STATION_NAMES],
+                )
+            )
     async_add_entities(sensors, update_before_add=True)
 
 
@@ -110,7 +112,7 @@ class LondonTfLSensor(SensorEntity):
             platform_filter.strip() if platform_filter else ''
         )
         self.max_items = int(max)
-        self.shortenStationNames = shortenStationNames
+        self._shorten_station_names = shortenStationNames
 
         self._state = None
         self._destination = ''
@@ -124,10 +126,15 @@ class LondonTfLSensor(SensorEntity):
     @property
     def name(self) -> str:
         station = self._tfl_data.get_station_name()
-        if self._destination and station:
+        destination = self._destination
+        if self._shorten_station_names:
+            station = shortenName(station)
+            destination = shortenName(destination)
+
+        if destination and station:
             return "{0} to {1}".format(
                 station,
-                self._destination
+                destination
             )
         if station:
             return "{0} - Idle".format(station)
@@ -214,10 +221,3 @@ class LondonTfLSensor(SensorEntity):
         attributes['data'] = data
 
         return attributes
-
-    def shortenPlatformName(destinationName, shorten):
-        if self.shortenStationNames:
-            for to_replace in SHORTEN_STATION_NAMES:
-                return destinationName.replace(to_replace, "").trim()
-        else:
-            return destinationName
