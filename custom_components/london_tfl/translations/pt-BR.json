@@ -1,0 +1,27 @@
+{
+  "config": {
+    "error": {
+      "request": "Falha ao conectar aos servidores TfL para recuperar dados."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "line": "Linha TfL"
+        },
+        "description": "Selecione a linha da qual sua estação faz parte.",
+        "title": "Linha"
+      },
+      "station": {
+        "data": {
+          "station": "Estação TfL",
+          "max": "Número máximo de partidas a relatar",
+          "platform": "Filtrar por plataforma",
+          "add_another": "Adicionar outra estação?",
+          "shortenStationNames": "Encurtar nomes de estações?"
+        },
+        "description": "Digite a estação que você gostaria de seguir.",
+        "title": "Estação"
+      }
+    }
+  }
+}
