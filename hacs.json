@@ -1,6 +1,6 @@
 {
   "name": "London TfL",
-  "country": "UK",
+  "country": "GB",
   "domains": ["sensor"],
   "homeassistant": "2021.12.0",
   "iot_class": ["Cloud Polling"],
