@@ -57,6 +57,9 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except OSError:
             _LOGGER.warning('Something broke.')
             errors['base'] = 'request'
+        except Exception:
+            _LOGGER.warning('Failed to interpret received %s', 'JSON.', exc_info=1)
+            errors['base'] = 'request'
 
         return self.async_show_form(
             step_id='user',
@@ -106,6 +109,9 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }
         except OSError:
             _LOGGER.warning('Something broke.')
+            errors['base'] = 'request'
+        except Exception:
+            _LOGGER.warning('Failed to interpret received %s', 'JSON.', exc_info=1)
             errors['base'] = 'request'
 
         return self.async_show_form(

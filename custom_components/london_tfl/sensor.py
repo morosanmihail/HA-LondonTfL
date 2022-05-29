@@ -173,6 +173,10 @@ class LondonTfLSensor(SensorEntity):
                 _LOGGER.warning('Something broke.')
                 self._state = 'Cannot reach TfL'
                 return
+            except Exception:
+                _LOGGER.warning('Failed to interpret received %s', 'JSON.', exc_info=1)
+                self._state = 'Cannot interpret JSON from TfL'
+                return
             self._tfl_data.populate(result, self.filter_platform)
 
         self._tfl_data.sort_data(self.max_items)
