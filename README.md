@@ -33,70 +33,9 @@ If you do not want this behaviour, you can change the name of the sensor manuall
 
 ### Alternate setup
 
-Alternatively, you can set it up manually in your `configuration.yaml`, though this is no longer recommended, as getting a station's Naptan ID is not trivial.
-
-Demo configuration:
-
-```
-sensor:
-  - platform: london_tfl
-    name: London TfL
-    stops:
-      - line: dlr  # Required
-        station: 940GZZDLRVC  # Required
-      - line: dlr
-        station: 940GZZDLCGT
-        platform: Platform 4  # Optional. All platforms by default
-        max: 3  # Optional. 3 items by default
-        shortenStationNames: True # Optional. Some stations have "Underground Station" appended to it and you can remove it if you set this to true.
-```
+You can still manually configure the integration, but it's not recommended.
+Check https://github.com/morosanmihail/HA-LondonTfL/wiki/Manual-setup if you insist.
 
 ## Viewing
 
-Default use case is to set up either with an Entity (or Entities) card, or a Markdown card and pull whichever data is important to you.
-
-Recently added, but not thoroughly tested, is support for the [HASL Departure Lovelace Card](https://github.com/hasl-sensor/lovelace-hasl-departure-card).
-
-![Example of HASL Card](https://github.com/morosanmihail/HA-LondonTfL/blob/main/images/hasl_card.png?raw=true)
-
-Also available is support for the Upcoming Media card.
-Random, yes, but it works as a decent visualiser of all upcoming times.
-
-![Example of Upcoming Media Card](https://github.com/morosanmihail/HA-LondonTfL/blob/main/images/upcoming_media_2.png?raw=true)
-
-For reference, this also uses `card-mod` to make it look slightly nicer with the less information provided.
-
-```
-entity: sensor.london_tfl_jubilee_940gzzlucyf
-image_style: fanart
-max: 3
-title: TFL
-type: custom:upcoming-media-card
-clock: 24
-box_shadows: false
-border_color: none
-title_size: small
-line1_size: little
-card_mod:
-  style: |
-    .type-custom-upcoming-media-card {
-      background: none !important;
-      box-shadow: none !important;
-    }
-
-    .type-custom-upcoming-media-card > div {
-      padding: 0px !important;
-    }
-
-    .lond_fanart {
-      border-radius: var(--ha-card-border-radius, 4px);
-      background-color: rgb(100, 100, 100);
-      background-blend-mode: multiply;
-      height: 80px;
-    }
-
-    .lond_fan_fanart {
-      background: none !important;
-      box-shadow: none !important;
-    }
-```
+Check out https://github.com/morosanmihail/HA-LondonTfL/wiki/Cards
