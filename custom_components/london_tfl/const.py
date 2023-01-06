@@ -1,6 +1,6 @@
-DOMAIN = 'london_tfl'
+DOMAIN = 'london_tfl_bus'
 
-DEFAULT_NAME = 'London TfL'
+DEFAULT_NAME = 'London TfL Bus'
 DEFAULT_ICON = 'mdi:train'
 CONF_STOPS = 'stops'
 
