@@ -1,12 +1,12 @@
 {
+  "domain": "london_tfl",
+  "name": "London TfL",
   "codeowners": ["@morosanmihail"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/morosanmihail/HA-LondonTfL",
-  "domain": "london_tfl",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/morosanmihail/HA-LondonTfL/issues",
-  "name": "London TfL",
   "requirements": [],
   "version": "0.1.4"
 }
