@@ -18,7 +18,7 @@ from .const import (
     CONF_STOPS, CONF_LINE, CONF_STATION, CONF_PLATFORM,
     CONF_MAX, DEFAULT_ICON, DEFAULT_MAX, DEFAULT_NAME, DOMAIN,
     TFL_ARRIVALS_URL, CONF_SHORTEN_STATION_NAMES, get_line_image,
-    shortenName
+    shortenName, CONF_METHOD, TFL_BUS_ARRIVALS_URL, DEFAULT_BUS_ICON
 )
 from .network import request
 from .tfl_data import TfLData
@@ -31,6 +31,7 @@ SCAN_INTERVAL = timedelta(minutes=1)
 CONFIG_STOP = vol.Schema({
     vol.Required(CONF_LINE): cv.string,
     vol.Required(CONF_STATION): cv.string,
+    vol.Optional(CONF_METHOD, default=''): cv.string,
     vol.Optional(CONF_PLATFORM, default=''): cv.string,
     vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
     vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
@@ -59,6 +60,7 @@ async def async_setup_entry(
             sensors.append(
                 LondonTfLSensor(
                     name=name,
+                    method=stop[CONF_METHOD] if CONF_METHOD in stop else '',
                     line=stop[CONF_LINE],
                     station=stop[CONF_STATION],
                     platform_filter=stop[CONF_PLATFORM] if CONF_PLATFORM in stop else '',
@@ -89,6 +91,7 @@ async def async_setup_platform(
             sensors.append(
                 LondonTfLSensor(
                     name,
+                    stop[CONF_METHOD],
                     stop[CONF_LINE],
                     stop[CONF_STATION],
                     stop[CONF_PLATFORM],
@@ -102,10 +105,11 @@ async def async_setup_platform(
 class LondonTfLSensor(SensorEntity):
     """Representation of a Sensor."""
 
-    def __init__(self, name, line, station, platform_filter, max, shortenStationNames):
+    def __init__(self, name, method, line, station, platform_filter, max, shortenStationNames):
         """Initialize the sensor."""
         self._platformname = name
         self._name = name + '_' + line + '_' + station
+        self.method = method
         self.line = line
         self.station = station
         self.filter_platform = (
@@ -140,10 +144,13 @@ class LondonTfLSensor(SensorEntity):
             return "{0} - Idle".format(station)
         return self._name
 
+    def is_not_bus(self) -> bool:
+        return (self.method != 'bus')
+
     @property
     def icon(self):
         """Icon of the sensor."""
-        return DEFAULT_ICON
+        return DEFAULT_ICON if self.is_not_bus() else DEFAULT_BUS_ICON
 
     @property
     def state(self):
@@ -155,11 +162,18 @@ class LondonTfLSensor(SensorEntity):
         This is the only method that should fetch new data for Home Assistant.
         """
 
-        url_base = TFL_ARRIVALS_URL.format(
-            self.line,
-            self.station,
-            str(uuid.uuid4())
-        )
+        url_base = ''
+        if self.is_not_bus():
+            url_base = TFL_ARRIVALS_URL.format(
+                self.line,
+                self.station,
+                str(uuid.uuid4())
+            )
+        else:
+            url_base = TFL_BUS_ARRIVALS_URL.format(
+                self.station,
+                str(uuid.uuid4())
+            )
 
         if self._tfl_data.is_data_stale(self.max_items):
             try:
@@ -190,7 +204,10 @@ class LondonTfLSensor(SensorEntity):
         if self._tfl_data.is_empty():
             return attributes
 
-        attributes['departures'] = self._tfl_data.get_departures()
+        attributes['departures'] = (
+            self._tfl_data.get_departures() if self.is_not_bus()
+            else self._tfl_data.get_bus_departures()
+        )
 
         data = [
             {
@@ -203,7 +220,10 @@ class LondonTfLSensor(SensorEntity):
             }
         ]
 
-        for index, departure in enumerate(self._tfl_data.get_departures()):
+        for index, departure in enumerate(
+            self._tfl_data.get_departures() if self.is_not_bus()
+            else self._tfl_data.get_bus_departures()
+        ):
             data.append({
                 'title': departure['destination'],
                 'airdate': departure['expected'],

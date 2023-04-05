@@ -10,10 +10,13 @@ from .const import (
     CONF_STOPS,
     CONF_STATION,
     CONF_LINE,
+    CONF_METHOD,
     CONF_SHORTEN_STATION_NAMES,
     CONF_MAX,
     CONF_PLATFORM,
     DEFAULT_MAX,
+    DEFAULT_METHODS,
+    DEFAULT_LINES,
     DOMAIN,
     TFL_LINES_URL,
     TFL_STATIONS_URL
@@ -21,9 +24,6 @@ from .const import (
 from .network import request
 
 _LOGGER = logging.getLogger(__name__)
-
-
-DEFAULT_LINES = {'dlr': 'DLR', 'jubilee': 'Jubilee'}
 
 
 @config_entries.HANDLERS.register(DOMAIN)
@@ -34,10 +34,30 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         '''Initialize.'''
         self.data: dict[str, Any] = {
             CONF_STOPS: [],
-            'lastLine': ''
+            'lastLine': '',
+            'lastMethod': '',
         }
 
     async def async_step_user(
+        self,
+        user_input: Optional[Dict[str, Any]] = None
+    ):
+        errors: Dict[str, str] = {}
+        if user_input is not None:
+            self.data['lastMethod'] = user_input[CONF_METHOD]
+            return await self.async_step_lines()
+
+        return self.async_show_form(
+            step_id='user',
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_METHOD): vol.In(DEFAULT_METHODS),
+                }
+            ),
+            errors=errors
+        )
+
+    async def async_step_lines(
         self,
         user_input: Optional[Dict[str, Any]] = None
     ):
@@ -48,7 +68,8 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         lines = DEFAULT_LINES
         try:
-            result = await request(TFL_LINES_URL, self)
+            url_base = TFL_LINES_URL.format(self.data['lastMethod'])
+            result = await request(url_base, self)
             if not result:
                 _LOGGER.warning('There was no reply from TfL servers.')
                 errors['base'] = 'request'
@@ -62,7 +83,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors['base'] = 'request'
 
         return self.async_show_form(
-            step_id='user',
+            step_id='lines',
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_LINE): vol.In(lines),
@@ -80,6 +101,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.data[CONF_STOPS].append(
                 {
                     CONF_LINE: self.data['lastLine'],
+                    CONF_METHOD: self.data['lastMethod'],
                     CONF_STATION: user_input[CONF_STATION],
                     CONF_MAX: user_input[CONF_MAX],
                     CONF_PLATFORM: user_input[CONF_PLATFORM],
@@ -91,7 +113,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if user_input.get('add_another', False):
                 return await self.async_step_user()
 
-            return self.async_create_entry(title='London TfL', data=self.data)
+            return self.async_create_entry(title=user_input[CONF_STATION], data=self.data)
 
         stations_url = TFL_STATIONS_URL.format(
             self.data['lastLine']
@@ -104,9 +126,15 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.warning('There was no reply from TfL servers.')
                 errors['base'] = 'request'
             result = json.loads(result)
-            stations = {
-                item['stationNaptan']: item['commonName'] for item in result
-            }
+            stations = {}
+            if self.data['lastMethod'] != 'bus':
+                stations = {
+                    item['stationNaptan']: item['commonName'] for item in result
+                }
+            else:
+                stations = {
+                    item['id']: item['commonName'] for item in result
+                }
         except OSError:
             _LOGGER.warning('Something broke.')
             errors['base'] = 'request'

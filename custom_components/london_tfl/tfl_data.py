@@ -97,6 +97,32 @@ class TfLData:
 
         return departures
 
+    def get_bus_departures(self):
+        departures = []
+        for item in self._api_json:
+            departure = {
+                'time_to_station': time_to_station(item, False),
+                'platform': (
+                    item['lineName'] if 'lineName' in item else ''
+                ),
+                'line': item['lineName'] if 'lineName' in item else '',
+                'direction': 0,
+                'departure': item['expectedArrival'],
+                'destination': get_destination(item),
+                'time': time_to_station(item, False, '{0}'),
+                'expected': item['expectedArrival'],
+                'type': 'Buses',
+                'groupofline': '',
+                'icon': 'mdi:bus',
+            }
+
+            departures.append(departure)
+
+            if len(self._station_name) == 0:
+                self._station_name = item['stationName']
+
+        return departures
+
     def get_station_name(self):
         return self._station_name
 

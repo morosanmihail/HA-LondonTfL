@@ -6,6 +6,13 @@
     "step": {
       "user": {
         "data": {
+          "method": "TfL Method of Transportation"
+        },
+        "description": "Select the method of transportation your line is part of.",
+        "title": "Method"
+      },
+      "lines": {
+        "data": {
           "line": "TfL Line"
         },
         "description": "Select the line your station is part of.",

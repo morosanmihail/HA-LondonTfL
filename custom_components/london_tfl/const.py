@@ -2,14 +2,17 @@ DOMAIN = 'london_tfl'
 
 DEFAULT_NAME = 'London TfL'
 DEFAULT_ICON = 'mdi:train'
+DEFAULT_BUS_ICON = 'mdi:bus'
 CONF_STOPS = 'stops'
-
+CONF_METHOD = 'method'
 CONF_LINE = 'line'
 CONF_SHORTEN_STATION_NAMES = 'shortenStationNames'
 CONF_STATION = 'station'
 CONF_PLATFORM = 'platform'
 CONF_MAX = 'max'
 DEFAULT_MAX = 3
+DEFAULT_LINES = {'dlr': 'DLR', 'jubilee': 'Jubilee'}
+DEFAULT_METHODS = ['tube', 'dlr', 'overground', 'cable-car', 'tram', 'river-tour', 'elizabeth-line', 'national-rail', 'bus']  # noqa
 
 LINE_IMAGES = {
     'default': 'https://tfl.gov.uk/tfl/common/images/logos/London%20Underground/Roundel/LULRoundel.jpg',  # noqa
@@ -19,8 +22,9 @@ LINE_IMAGES = {
     'tfl-rail': 'https://tfl.gov.uk/tfl/common/images/logos/TfL%20Rail/Roundel/TfLRailRoundel.jpg',  # noqa
 }
 
-TFL_LINES_URL = 'https://api.tfl.gov.uk/line/mode/tube,dlr,overground,cable-car,tram,river-tour,elizabeth-line,national-rail'  # noqa
+TFL_LINES_URL = 'https://api.tfl.gov.uk/line/mode/{0}'
 TFL_ARRIVALS_URL = 'https://api.tfl.gov.uk/line/{0}/arrivals/{1}?test={2}'
+TFL_BUS_ARRIVALS_URL = 'https://api.tfl.gov.uk/StopPoint/{0}/arrivals/?test={1}'
 TFL_STATIONS_URL = 'https://api.tfl.gov.uk/line/{0}/stoppoints'
 
 SHORTEN_STATION_NAMES = ['Underground Station', 'DLR Station']
