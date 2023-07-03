@@ -39,10 +39,14 @@ class TfLData:
         if len(self._raw_result) > 0:
             # check if there are enough already stored to skip a request
             now = datetime.now().timestamp()
-            after_now = [
-                item for item in self._raw_result
-                if parser.parse(item['expectedArrival']).timestamp() > now
-            ]
+            after_now = []
+            try:
+                after_now = [
+                    item for item in self._raw_result
+                    if parser.parse(item['expectedArrival']).timestamp() > now
+                ]
+            except Exception:
+                after_now = []
 
             if len(after_now) >= max_items:
                 self._raw_result = after_now
