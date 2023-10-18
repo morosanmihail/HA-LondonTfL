@@ -1,8 +1,6 @@
 DOMAIN = 'london_tfl'
 
 DEFAULT_NAME = 'London TfL'
-DEFAULT_ICON = 'mdi:train'
-DEFAULT_BUS_ICON = 'mdi:bus'
 CONF_STOPS = 'stops'
 CONF_METHOD = 'method'
 CONF_LINE = 'line'
@@ -13,6 +11,7 @@ CONF_MAX = 'max'
 DEFAULT_MAX = 3
 DEFAULT_LINES = {'dlr': 'DLR', 'jubilee': 'Jubilee'}
 DEFAULT_METHODS = ['tube', 'dlr', 'overground', 'cable-car', 'tram', 'river-tour', 'elizabeth-line', 'national-rail', 'bus']  # noqa
+DEFAULT_ICONS = {'bus': 'mdi:bus', 'tram': 'mdi:tram', 'default': 'mdi:train'}
 
 LINE_IMAGES = {
     'default': 'https://tfl.gov.uk/tfl/common/images/logos/London%20Underground/Roundel/LULRoundel.jpg',  # noqa

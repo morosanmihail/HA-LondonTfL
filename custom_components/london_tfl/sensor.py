@@ -16,9 +16,9 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from .const import (
     CONF_STOPS, CONF_LINE, CONF_STATION, CONF_PLATFORM,
-    CONF_MAX, DEFAULT_ICON, DEFAULT_MAX, DEFAULT_NAME, DOMAIN,
+    CONF_MAX, DEFAULT_ICONS, DEFAULT_MAX, DEFAULT_NAME, DOMAIN,
     TFL_ARRIVALS_URL, CONF_SHORTEN_STATION_NAMES, get_line_image,
-    shortenName, CONF_METHOD, TFL_BUS_ARRIVALS_URL, DEFAULT_BUS_ICON
+    shortenName, CONF_METHOD, TFL_BUS_ARRIVALS_URL
 )
 from .network import request
 from .tfl_data import TfLData
@@ -150,7 +150,9 @@ class LondonTfLSensor(SensorEntity):
     @property
     def icon(self):
         """Icon of the sensor."""
-        return DEFAULT_ICON if self.is_not_bus() else DEFAULT_BUS_ICON
+        if self.method in DEFAULT_ICONS:
+            return DEFAULT_ICONS[self.method]
+        return DEFAULT_ICONS['default']
 
     @property
     def state(self):
