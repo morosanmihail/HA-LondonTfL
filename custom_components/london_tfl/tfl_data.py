@@ -3,7 +3,7 @@ from dateutil import parser
 
 
 def get_destination(entry):
-    if 'towards' in entry:
+    if 'towards' in entry and len(entry['towards']) > 0:
         return entry['towards']
     if 'destinationName' in entry:
         return entry['destinationName']
