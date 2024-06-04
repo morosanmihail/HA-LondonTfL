@@ -2,7 +2,9 @@ from datetime import datetime
 from dateutil import parser
 
 
-def get_destination(entry):
+def get_destination(entry, use_destination_name=False):
+    if use_destination_name and 'destinationName' in entry:
+        return entry['destinationName']
     if 'towards' in entry and len(entry['towards']) > 0:
         return entry['towards']
     if 'destinationName' in entry:
@@ -15,7 +17,7 @@ def time_to_station(entry, with_destination=True, style='{0}m {1}s'):
         parser.parse(entry['expectedArrival']).replace(tzinfo=None) -
         datetime.utcnow().replace(tzinfo=None)
     ).total_seconds()
-    next_departure_dest = get_destination(entry)
+    next_departure_dest = get_destination(entry, True)
     return style.format(
         int(next_departure_time / 60),
         int(next_departure_time % 60)
@@ -85,7 +87,7 @@ class TfLData:
                 'line': item['platformName'] if 'platformName' in item else '',
                 'direction': 0,
                 'departure': item['expectedArrival'],
-                'destination': get_destination(item),
+                'destination': get_destination(item, False),
                 'time': time_to_station(item, False, '{0}'),
                 'expected': item['expectedArrival'],
                 'type': 'Metros',
@@ -111,7 +113,7 @@ class TfLData:
                 'line': item['lineName'] if 'lineName' in item else '',
                 'direction': 0,
                 'departure': item['expectedArrival'],
-                'destination': get_destination(item),
+                'destination': get_destination(item, True),
                 'time': time_to_station(item, False, '{0}'),
                 'expected': item['expectedArrival'],
                 'type': 'Buses',
