@@ -58,7 +58,7 @@ class TfLData:
         if filter_platform != '':
             self._raw_result = [
                 item for item in self._raw_result
-                if filter_platform in item['platformName']
+                if ('platformName' in item and filter_platform in item['platformName']) or ('lineName' in item and filter_platform in item['lineName'])
             ]
 
     def sort_data(self, max_items):
