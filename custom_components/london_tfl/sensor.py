@@ -22,6 +22,7 @@ from .const import (
 )
 from .network import request
 from .tfl_data import TfLData
+from .hasl_utils import as_hasl_departures
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -206,10 +207,12 @@ class LondonTfLSensor(SensorEntity):
         if self._tfl_data.is_empty():
             return attributes
 
-        attributes['departures'] = (
-            self._tfl_data.get_departures() if self.is_not_bus()
+        departures = (
+            self._tfl_data.get_departures()
+            if self.is_not_bus()
             else self._tfl_data.get_bus_departures()
         )
+        attributes['departures'] = as_hasl_departures(departures)
 
         data = [
             {
@@ -222,10 +225,7 @@ class LondonTfLSensor(SensorEntity):
             }
         ]
 
-        for index, departure in enumerate(
-            self._tfl_data.get_departures() if self.is_not_bus()
-            else self._tfl_data.get_bus_departures()
-        ):
+        for index, departure in enumerate(departures):
             data.append({
                 'title': departure['destination'],
                 'airdate': departure['expected'],
