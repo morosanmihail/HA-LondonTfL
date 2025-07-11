@@ -17,8 +17,8 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from .const import (
     CONF_STOPS, CONF_LINE, CONF_STATION, CONF_PLATFORM,
     CONF_MAX, DEFAULT_ICONS, DEFAULT_MAX, DEFAULT_NAME, DOMAIN,
-    TFL_ARRIVALS_URL, CONF_SHORTEN_STATION_NAMES, get_line_image,
-    shortenName, CONF_METHOD, TFL_BUS_ARRIVALS_URL
+    CONF_SHORTEN_STATION_NAMES, get_line_image,
+    shortenName, CONF_METHOD
 )
 from .network import request
 from .tfl_data import TfLData
@@ -121,7 +121,7 @@ class LondonTfLSensor(SensorEntity):
 
         self._state = None
         self._destination = ''
-        self._tfl_data = TfLData()
+        self._tfl_data = TfLData(method=method, line=line)
 
     @property
     def unique_id(self):
@@ -145,9 +145,6 @@ class LondonTfLSensor(SensorEntity):
             return "{0} - Idle".format(station)
         return self._name
 
-    def is_not_bus(self) -> bool:
-        return (self.method != 'bus')
-
     @property
     def icon(self):
         """Icon of the sensor."""
@@ -165,22 +162,12 @@ class LondonTfLSensor(SensorEntity):
         This is the only method that should fetch new data for Home Assistant.
         """
 
-        url_base = ''
-        if self.is_not_bus():
-            url_base = TFL_ARRIVALS_URL.format(
-                self.line,
-                self.station,
-                str(uuid.uuid4())
-            )
-        else:
-            url_base = TFL_BUS_ARRIVALS_URL.format(
-                self.station,
-                str(uuid.uuid4())
-            )
-
         if self._tfl_data.is_data_stale(self.max_items):
             try:
-                result = await request(url_base, self)
+                result = await request(self._tfl_data.url(
+                  station=self.station,
+                  test=str(uuid.uuid4())
+                ), self)
                 if not result:
                     _LOGGER.warning('There was no reply from TfL servers.')
                     self._state = 'Cannot reach TfL'
@@ -207,11 +194,7 @@ class LondonTfLSensor(SensorEntity):
         if self._tfl_data.is_empty():
             return attributes
 
-        departures = (
-            self._tfl_data.get_departures()
-            if self.is_not_bus()
-            else self._tfl_data.get_bus_departures()
-        )
+        departures = self._tfl_data.get_departures()
         attributes['departures'] = as_hasl_departures(departures)
 
         data = [
