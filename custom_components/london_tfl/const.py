@@ -27,7 +27,7 @@ TFL_ALT_ARRIVALS_URL = 'https://api.tfl.gov.uk/StopPoint/{1}/arrivaldepartures/?
 TFL_BUS_ARRIVALS_URL = 'https://api.tfl.gov.uk/StopPoint/{1}/arrivals/?test={2}'
 TFL_STATIONS_URL = 'https://api.tfl.gov.uk/line/{0}/stoppoints'
 
-SHORTEN_STATION_NAMES = ['Underground Station', 'DLR Station']
+SHORTEN_STATION_NAMES = ['Underground Station', 'DLR Station', 'Rail Station']
 
 
 def get_line_image(line):
