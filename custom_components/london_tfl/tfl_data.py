@@ -1,29 +1,33 @@
 from datetime import datetime
 from dateutil import parser
 
-from custom_components.london_tfl.const import TFL_ALT_ARRIVALS_URL, TFL_ARRIVALS_URL, TFL_BUS_ARRIVALS_URL
+from custom_components.london_tfl.const import (
+    TFL_ALT_ARRIVALS_URL,
+    TFL_ARRIVALS_URL,
+    TFL_BUS_ARRIVALS_URL,
+    TFL_TRANSPORT_TYPES,
+)
 
 
 def get_destination(entry, use_destination_name=False):
-    if use_destination_name and 'destinationName' in entry:
-        return entry['destinationName']
-    if 'towards' in entry and len(entry['towards']) > 0:
-        return entry['towards']
-    if 'destinationName' in entry:
-        return entry['destinationName']
-    return ''
+    if use_destination_name and "destinationName" in entry:
+        return entry["destinationName"]
+    if "towards" in entry and len(entry["towards"]) > 0:
+        return entry["towards"]
+    if "destinationName" in entry:
+        return entry["destinationName"]
+    return ""
 
 
-def time_to_station(entry, arrival, with_destination=True, style='{0}m {1}s'):
+def time_to_station(entry, arrival, with_destination=True, style="{0}m {1}s"):
     next_departure_time = (
-        parser.parse(arrival).replace(tzinfo=None) -
-        datetime.utcnow().replace(tzinfo=None)
+        parser.parse(arrival).replace(tzinfo=None)
+        - datetime.utcnow().replace(tzinfo=None)
     ).total_seconds()
     next_departure_dest = get_destination(entry, True)
     return style.format(
-        int(next_departure_time / 60),
-        int(next_departure_time % 60)
-    ) + (' to ' + next_departure_dest if with_destination else '')
+        int(next_departure_time / 60), int(next_departure_time % 60)
+    ) + (" to " + next_departure_dest if with_destination else "")
 
 
 class TfLData:
@@ -47,7 +51,8 @@ class TfLData:
             after_now = []
             try:
                 after_now = [
-                    item for item in self._raw_result
+                    item
+                    for item in self._raw_result
                     if parser.parse(self._get_expected_arrival(item)).timestamp() > now
                 ]
             except Exception:
@@ -59,9 +64,10 @@ class TfLData:
         return True
 
     def filter_by_platform(self, filter_platform):
-        if filter_platform != '':
+        if filter_platform != "":
             self._raw_result = [
-                item for item in self._raw_result
+                item
+                for item in self._raw_result
                 if filter_platform in self._get_platform_name(item)
             ]
 
@@ -72,84 +78,67 @@ class TfLData:
 
     def get_state(self):
         if len(self._api_json) > 0:
-            return parser.parse(
-              self._get_expected_arrival(self._api_json[0])
-            ).strftime('%H:%M')
-        return 'None'
+            return parser.parse(self._get_expected_arrival(self._api_json[0])).strftime(
+                "%H:%M"
+            )
+        return "None"
 
     def is_empty(self):
         return len(self._api_json) == 0
 
-    def _is_not_bus(self) -> bool:
-        return (self.method != 'bus')
-
-    def _is_alt_api(self) -> bool:
-        return (self.method == "national-rail" and self.line == "thameslink")
-
     def _get_expected_departure(self, item) -> str:
-        if self._is_alt_api():
-            return item.get('estimatedTimeOfDeparture', item['scheduledTimeOfDeparture'])
-        return item['expectedArrival']
+        method = "default" if self.method not in TFL_TRANSPORT_TYPES else self.method
+        return item[TFL_TRANSPORT_TYPES[method]["expected_departure"]]
 
     def _get_expected_arrival(self, item) -> str:
-        if self._is_alt_api():
-            return item.get('estimatedTimeOfArrival', item['scheduledTimeOfArrival'])
-        return item['expectedArrival']
+        method = "default" if self.method not in TFL_TRANSPORT_TYPES else self.method
+        return item[TFL_TRANSPORT_TYPES[method]["expected_arrival"]]
 
     def _get_platform_name(self, item) -> str:
-        platform_prop = 'platformName' if self._is_not_bus() else 'lineName'
-        return item.get(platform_prop, '')
+        method = "default" if self.method not in TFL_TRANSPORT_TYPES else self.method
+        platform = item.get(TFL_TRANSPORT_TYPES[method]["platform_name"], "")
+        platform = platform.replace("Platform ", "")
+        return platform
 
-    def url(self, *, station: str, test: str = '') -> str: 
-        if self._is_not_bus():
-            if self._is_alt_api():
-              template = TFL_ALT_ARRIVALS_URL
-            else:
-              template = TFL_ARRIVALS_URL
+    def url(self, *, station: str, test: str = "") -> str:
+        if self.method in TFL_TRANSPORT_TYPES:
+            template = TFL_TRANSPORT_TYPES[self.method]["url"]
         else:
-            template = TFL_BUS_ARRIVALS_URL
+            template = TFL_TRANSPORT_TYPES["default"]["url"]
 
-        return template.format(
-            self.line,
-            station,
-            test
-        )
+        return template.format(self.line, station, test)
 
     def get_departures(self):
         departures = []
         for item in self._api_json:
-            icon = 'mdi:train'
-            type = None
-            if self._is_not_bus():
-              if self._is_alt_api():
-                type = 'Trains'
-              else:
-                type = 'Metros'
-            else:
-              type = 'Buses'
-              icon = 'mdi:bus'
+            method = self.method
+            if method not in TFL_TRANSPORT_TYPES:
+                method = "default"
+            use_destination_name = TFL_TRANSPORT_TYPES[method]["use_destination_name"]
+            transport_type = TFL_TRANSPORT_TYPES[method]["transport_type"]
+            icon = TFL_TRANSPORT_TYPES[method]["icon"]
 
             expected_departure = self._get_expected_departure(item)
             expected_arrival = self._get_expected_arrival(item)
             platform = self._get_platform_name(item)
             departure = {
-                'time_to_station': time_to_station(item, expected_arrival, False),
-                'platform': platform,
-                'line': platform,
-                'direction': 0,
-                'departure': expected_departure,
-                'destination': get_destination(item, False),
-                'time': time_to_station(item, expected_departure, False, '{0}'),
-                'expected': expected_arrival,
-                'type': type,
-                'groupofline': '',
-                'icon': icon,
+                "time_to_station": time_to_station(item, expected_arrival, False),
+                "platform": platform,
+                "line": platform,
+                "direction": 0,
+                "departure": expected_departure,
+                "destination": get_destination(item, use_destination_name),
+                "time": time_to_station(item, expected_departure, False, "{0}"),
+                "expected": expected_arrival,
+                "type": transport_type,
+                "groupofline": "",
+                "icon": icon,
             }
 
             departures.append(departure)
 
             if len(self._station_name) == 0:
-                self._station_name = item['stationName']
+                self._station_name = item["stationName"]
 
         return departures
 
