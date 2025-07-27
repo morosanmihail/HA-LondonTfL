@@ -88,11 +88,11 @@ class TfLData:
 
     def _get_expected_departure(self, item) -> str:
         method = "default" if self.method not in TFL_TRANSPORT_TYPES else self.method
-        return item[TFL_TRANSPORT_TYPES[method]["expected_departure"]]
+        return item.get(TFL_TRANSPORT_TYPES[method]["expected_departure"], "")
 
     def _get_expected_arrival(self, item) -> str:
         method = "default" if self.method not in TFL_TRANSPORT_TYPES else self.method
-        return item[TFL_TRANSPORT_TYPES[method]["expected_arrival"]]
+        return item.get(TFL_TRANSPORT_TYPES[method]["expected_arrival"], "")
 
     def _get_platform_name(self, item) -> str:
         method = "default" if self.method not in TFL_TRANSPORT_TYPES else self.method
