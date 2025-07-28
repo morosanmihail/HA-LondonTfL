@@ -39,6 +39,12 @@ class TestTfLData(unittest.TestCase):
         self.assertGreater(departures[3]["expected"], departures[2]["expected"])
         self.assertGreater(departures[4]["expected"], departures[3]["expected"])
 
+    def test_get_station_name(self):
+        self.tfl_data.get_departures()
+        station_name = self.tfl_data.get_station_name()
+
+        self.assertEqual(station_name, "Stratford Underground Station")
+
 
 if __name__ == "__main__":
     unittest.main()

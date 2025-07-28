@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from dateutil import parser
+from zoneinfo import ZoneInfo
 
 from custom_components.london_tfl.const import (
     TFL_ALT_ARRIVALS_URL,
@@ -20,10 +21,9 @@ def get_destination(entry, use_destination_name=False):
 
 
 def time_to_station(entry, arrival, with_destination=True, style="{0}m {1}s"):
-    next_departure_time = (
-        parser.parse(arrival).replace(tzinfo=None)
-        - datetime.utcnow().replace(tzinfo=None)
-    ).total_seconds()
+    now = datetime.now(UTC)
+    arrival = parser.parse(arrival).replace(tzinfo=UTC)
+    next_departure_time = (arrival - now).total_seconds()
     next_departure_dest = get_destination(entry, True)
     return style.format(
         int(next_departure_time / 60), int(next_departure_time % 60)
@@ -78,8 +78,10 @@ class TfLData:
 
     def get_state(self):
         if len(self._api_json) > 0:
-            return parser.parse(self._get_expected_arrival(self._api_json[0])).strftime(
-                "%H:%M"
+            return (
+                parser.parse(self._get_expected_arrival(self._api_json[0]))
+                .astimezone(ZoneInfo("Europe/London"))
+                .strftime("%H:%M")
             )
         return "None"
 
