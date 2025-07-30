@@ -141,8 +141,7 @@ class LondonTfLSensor(SensorEntity):
 
     @property
     def unique_id(self):
-        filter_append = "" if not self.filter_platform else (
-            "_" + self.filter_platform)
+        filter_append = "" if not self.filter_platform else ("_" + self.filter_platform)
         return self._platformname + "_" + self.line + "_" + self.station + filter_append
 
     @property
@@ -179,8 +178,7 @@ class LondonTfLSensor(SensorEntity):
         if self._tfl_data.is_data_stale(self.max_items):
             try:
                 result = await request(
-                    self._tfl_data.url(station=self.station,
-                                       test=str(uuid.uuid4())),
+                    self._tfl_data.url(station=self.station, test=str(uuid.uuid4())),
                     self,
                 )
                 if not result:
@@ -193,8 +191,7 @@ class LondonTfLSensor(SensorEntity):
                 self._state = "Cannot reach TfL"
                 return
             except Exception:
-                _LOGGER.warning(
-                    "Failed to interpret received %s", "JSON.", exc_info=1)
+                _LOGGER.warning("Failed to interpret received %s", "JSON.", exc_info=1)
                 self._state = "Cannot interpret JSON from TfL"
                 return
             self._tfl_data.populate(result, self.filter_platform)
@@ -206,6 +203,7 @@ class LondonTfLSensor(SensorEntity):
     def extra_state_attributes(self):
         attributes = {}
         attributes["last_refresh"] = self._tfl_data.get_last_update()
+        attributes["line_colours"] = self._tfl_data.get_line_colours()
 
         if self._tfl_data.is_empty():
             return attributes

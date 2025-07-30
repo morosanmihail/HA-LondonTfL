@@ -7,6 +7,7 @@ from custom_components.london_tfl.const import (
     TFL_ARRIVALS_URL,
     TFL_BUS_ARRIVALS_URL,
     TFL_TRANSPORT_TYPES,
+    TFL_COLOUR_CODES,
 )
 
 
@@ -88,34 +89,32 @@ class TfLData:
     def is_empty(self):
         return len(self._api_json) == 0
 
+    def _method_property(self, const) -> str:
+        return "default" if self.method not in const else self.method
+
     def _get_expected_departure(self, item) -> str:
-        method = "default" if self.method not in TFL_TRANSPORT_TYPES else self.method
+        method = self._method_property(TFL_TRANSPORT_TYPES)
         return item.get(TFL_TRANSPORT_TYPES[method]["expected_departure"], "")
 
     def _get_expected_arrival(self, item) -> str:
-        method = "default" if self.method not in TFL_TRANSPORT_TYPES else self.method
+        method = self._method_property(TFL_TRANSPORT_TYPES)
         return item.get(TFL_TRANSPORT_TYPES[method]["expected_arrival"], "")
 
     def _get_platform_name(self, item) -> str:
-        method = "default" if self.method not in TFL_TRANSPORT_TYPES else self.method
+        method = self._method_property(TFL_TRANSPORT_TYPES)
         platform = item.get(TFL_TRANSPORT_TYPES[method]["platform_name"], "")
         platform = platform.replace("Platform ", "")
         return platform
 
     def url(self, *, station: str, test: str = "") -> str:
-        if self.method in TFL_TRANSPORT_TYPES:
-            template = TFL_TRANSPORT_TYPES[self.method]["url"]
-        else:
-            template = TFL_TRANSPORT_TYPES["default"]["url"]
-
+        method = self._method_property(TFL_TRANSPORT_TYPES)
+        template = TFL_TRANSPORT_TYPES[method]["url"]
         return template.format(self.line, station, test)
 
     def get_departures(self):
         departures = []
         for item in self._api_json:
-            method = self.method
-            if method not in TFL_TRANSPORT_TYPES:
-                method = "default"
+            method = self._method_property(TFL_TRANSPORT_TYPES)
             use_destination_name = TFL_TRANSPORT_TYPES[method]["use_destination_name"]
             transport_type = TFL_TRANSPORT_TYPES[method]["transport_type"]
             icon = TFL_TRANSPORT_TYPES[method]["icon"]
@@ -149,3 +148,7 @@ class TfLData:
 
     def get_last_update(self):
         return self._last_update
+
+    def get_line_colours(self):
+        method = self._method_property(TFL_COLOUR_CODES)
+        return TFL_COLOUR_CODES[method]

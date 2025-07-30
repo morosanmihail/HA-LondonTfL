@@ -91,3 +91,15 @@ TFL_TRANSPORT_TYPES = {
         "platform_name": "platformName",
     },
 }
+
+TFL_COLOUR_CODES = {
+    "tube": {"r": 0, "g": 25, "b": 168},
+    "dlr": {"r": 0, "g": 175, "b": 173},
+    "overground": {"r": 250, "g": 123, "b": 5},
+    "elizabeth-line": {"r": 96, "g": 57, "b": 158},
+    "bus": {"r": 220, "g": 36, "b": 31},
+    "cable-car": {"r": 115, "g": 79, "b": 160},
+    "river-tour": {"r": 3, "g": 155, "b": 229},
+    "tram": {"r": 95, "g": 181, "b": 38},
+    "default": {"r": 0, "g": 25, "b": 168},
+}

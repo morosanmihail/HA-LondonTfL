@@ -45,6 +45,19 @@ class TestTfLData(unittest.TestCase):
 
         self.assertEqual(station_name, "Stratford Underground Station")
 
+    def test_get_line_colours(self):
+        self.tfl_data.get_departures()
+        colours = self.tfl_data.get_line_colours()
+
+        self.assertEqual(
+            {
+                "r": 0,
+                "g": 25,
+                "b": 168,
+            },
+            colours,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
