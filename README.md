@@ -2,7 +2,8 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
-![Example of HASL Card](https://github.com/morosanmihail/HA-LondonTfL/blob/main/images/hasl_card.png?raw=true)
+<img width="961" height="600" alt="Example of HASL Card" src="https://github.com/user-attachments/assets/2a7f3f05-1309-4863-8957-5b232d26a61d" />
+
 
 ## Introduction
 
