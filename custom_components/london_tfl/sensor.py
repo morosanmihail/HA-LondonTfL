@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import logging
-import json
-import uuid
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from datetime import timedelta
+from typing import Optional
 from homeassistant import config_entries, core
 from homeassistant.components.sensor import SensorEntity, PLATFORM_SCHEMA
 from homeassistant.const import CONF_NAME
@@ -21,6 +20,7 @@ from .const import (
     CONF_STATION,
     CONF_PLATFORM,
     CONF_MAX,
+    CONF_NR_API_KEY,
     DEFAULT_ICONS,
     DEFAULT_MAX,
     DEFAULT_NAME,
@@ -30,7 +30,6 @@ from .const import (
     shortenName,
     CONF_METHOD,
 )
-from .network import request
 from .tfl_data import TfLData
 from .hasl_utils import as_hasl_departures
 
@@ -87,6 +86,7 @@ async def async_setup_entry(
                         if CONF_SHORTEN_STATION_NAMES in stop
                         else False
                     ),
+                    nr_api_key=stop.get(CONF_NR_API_KEY),
                 )
             )
     async_add_entities(sensors, update_before_add=True)
@@ -114,6 +114,7 @@ async def async_setup_platform(
                     stop[CONF_PLATFORM],
                     stop[CONF_MAX],
                     stop[CONF_SHORTEN_STATION_NAMES],
+                    nr_api_key=stop.get(CONF_NR_API_KEY),
                 )
             )
     async_add_entities(sensors, update_before_add=True)
@@ -123,7 +124,16 @@ class LondonTfLSensor(SensorEntity):
     """Representation of a Sensor."""
 
     def __init__(
-        self, name, method, line, station, platform_filter, max, shortenStationNames
+        self,
+        name,
+        method,
+        line,
+        station,
+        platform_filter,
+        max,
+        shortenStationNames,
+        *,
+        nr_api_key: Optional[str] = None,
     ):
         """Initialize the sensor."""
         self._platformname = name
@@ -137,7 +147,9 @@ class LondonTfLSensor(SensorEntity):
 
         self._state = None
         self._destination = ""
-        self._tfl_data = TfLData(method=method, line=line)
+        self._tfl_data = TfLData(
+            method=method, line=line, station=station, nr_api_key=nr_api_key
+        )
 
     @property
     def unique_id(self):
@@ -176,23 +188,9 @@ class LondonTfLSensor(SensorEntity):
         """
 
         if self._tfl_data.is_data_stale(self.max_items):
-            try:
-                result = await request(
-                    self._tfl_data.url(station=self.station, test=str(uuid.uuid4())),
-                    self,
-                )
-                if not result:
-                    _LOGGER.warning("There was no reply from TfL servers.")
-                    self._state = "Cannot reach TfL"
-                    return
-                result = json.loads(result)
-            except OSError:
-                _LOGGER.warning("Something broke.")
-                self._state = "Cannot reach TfL"
-                return
-            except Exception:
-                _LOGGER.warning("Failed to interpret received %s", "JSON.", exc_info=1)
-                self._state = "Cannot interpret JSON from TfL"
+            result = await self._tfl_data.fetch(self.hass)
+            if isinstance(result, str):
+                self._state = result
                 return
             self._tfl_data.populate(result, self.filter_platform)
 
