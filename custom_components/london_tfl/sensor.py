@@ -186,6 +186,10 @@ class LondonTfLSensor(SensorEntity):
                     self._state = "Cannot reach TfL"
                     return
                 result = json.loads(result)
+                if isinstance(result, str):
+                    _LOGGER.warning("TfL API error: %s", result)
+                    self._state = "Invalid reply from TfL"
+                    return
             except OSError:
                 _LOGGER.warning("Something broke.")
                 self._state = "Cannot reach TfL"
