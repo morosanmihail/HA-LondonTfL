@@ -6,6 +6,7 @@ CONF_METHOD = "method"
 CONF_LINE = "line"
 CONF_SHORTEN_STATION_NAMES = "shortenStationNames"
 CONF_STATION = "station"
+CONF_NR_API_KEY = "nr_api_key"
 CONF_PLATFORM = "platform"
 CONF_MAX = "max"
 DEFAULT_MAX = 3
@@ -38,6 +39,7 @@ TFL_ALT_ARRIVALS_URL = (
 )
 TFL_BUS_ARRIVALS_URL = "https://api.tfl.gov.uk/StopPoint/{1}/arrivals/?test={2}"
 TFL_STATIONS_URL = "https://api.tfl.gov.uk/line/{0}/stoppoints"
+USE_LDBWS_URL = "use-ldbws-purposefully-not-a-url"
 
 SHORTEN_STATION_NAMES = ["Underground Station", "DLR Station", "Rail Station"]
 
@@ -67,7 +69,7 @@ TFL_TRANSPORT_TYPES = {
         "transport_type": "Trains",
         "icon": DEFAULT_ICONS["default"],
         "use_destination_name": False,
-        "url": TFL_ALT_ARRIVALS_URL,
+        "url": USE_LDBWS_URL,
         "expected_departure": "scheduledTimeOfDeparture",
         "expected_arrival": "scheduledTimeOfArrival",
         "platform_name": "platformName",

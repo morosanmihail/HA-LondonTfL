@@ -13,6 +13,7 @@ from .const import (
     CONF_METHOD,
     CONF_SHORTEN_STATION_NAMES,
     CONF_MAX,
+    CONF_NR_API_KEY,
     CONF_PLATFORM,
     DEFAULT_MAX,
     DEFAULT_METHODS,
@@ -63,7 +64,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         lines = DEFAULT_LINES
         try:
             url_base = TFL_LINES_URL.format(self.data["lastMethod"])
-            result = await request(url_base, self)
+            result = await request(url_base)
             if not result:
                 _LOGGER.warning("There was no reply from TfL servers.")
                 errors["base"] = "request"
@@ -95,6 +96,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     CONF_LINE: self.data["lastLine"],
                     CONF_METHOD: self.data["lastMethod"],
+                    CONF_NR_API_KEY: user_input.get(CONF_NR_API_KEY, None),
                     CONF_STATION: user_input[CONF_STATION],
                     CONF_MAX: user_input[CONF_MAX],
                     CONF_PLATFORM: user_input[CONF_PLATFORM],
@@ -114,7 +116,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         stations = {}
         try:
-            result = await request(stations_url, self)
+            result = await request(stations_url)
             if not result:
                 _LOGGER.warning("There was no reply from TfL servers.")
                 errors["base"] = "request"
@@ -134,10 +136,32 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             "JSON.", exc_info=1)
             errors["base"] = "request"
 
+        description_placeholders = {"extra_description": ""}
+        extra_fields = {}
+
+        if (
+            self.data["lastMethod"] == "national-rail"
+            and self.data["lastLine"] != "thameslink"
+        ):
+            # if a user already supplied a token in this specific flow, retrieve it
+            kwargs = {}
+            for stop in self.data[CONF_STOPS]:
+                token = stop.get(CONF_NR_API_KEY)
+                if token is not None:
+                    kwargs["default"] = token
+
+            extra_fields[vol.Required(CONF_NR_API_KEY, **kwargs)] = cv.string
+            description_placeholders["extra_description"] = """
+This line is not supported by the TfL API and requires an extra API token in order to see departure times.
+Please register at https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/Registration and provide the token here.
+If you are already registered, you can reuse the same token as many times as you want.
+"""
+
         return self.async_show_form(
             step_id="station",
             data_schema=vol.Schema(
                 {
+                    **extra_fields,
                     vol.Required(CONF_STATION): vol.In(stations),
                     vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
                     vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
@@ -146,4 +170,5 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
+            description_placeholders=description_placeholders,
         )

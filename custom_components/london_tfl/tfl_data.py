@@ -1,14 +1,20 @@
+import json
+import logging
+import uuid
 from datetime import datetime, UTC
 from dateutil import parser
+from functools import partial
+from typing import Optional, Union
 from zoneinfo import ZoneInfo
 
+
+from custom_components.london_tfl.codes import atco_to_crs
 from custom_components.london_tfl.const import (
-    TFL_ALT_ARRIVALS_URL,
-    TFL_ARRIVALS_URL,
-    TFL_BUS_ARRIVALS_URL,
     TFL_TRANSPORT_TYPES,
     TFL_COLOUR_CODES,
+    USE_LDBWS_URL,
 )
+from custom_components.london_tfl.network import LDBWS, LDBWSError, request
 
 
 def get_destination(entry, use_destination_name=False):
@@ -19,6 +25,9 @@ def get_destination(entry, use_destination_name=False):
     if "destinationName" in entry:
         return entry["destinationName"]
     return ""
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def time_to_station(entry, arrival, with_destination=True, style="{0}m {1}s"):
@@ -32,13 +41,63 @@ def time_to_station(entry, arrival, with_destination=True, style="{0}m {1}s"):
 
 
 class TfLData:
-    def __init__(self, *, method: str, line: str):
+    def __init__(
+        self, *, method: str, line: str, station: str, nr_api_key: Optional[str] = None
+    ):
         self._raw_result = []
         self._last_update = None
         self._api_json = []
         self._station_name = ""
         self.method = method
         self.line = line
+        self.station = station
+        self.nr_api_key = nr_api_key
+        self.__ldbws_client = None  # initialized lazily
+
+    async def fetch(self, hass) -> Union[str, list]:
+        url = self.url(station=self.station, test=str(uuid.uuid4()))
+        if url == USE_LDBWS_URL:
+            return await self._fetch_ldbws(hass)
+
+        try:
+            result = await request(
+                url,
+            )
+            if not result:
+                _LOGGER.warning("There was no reply from TfL servers for %s", url)
+                return "Cannot reach TfL"
+            return json.loads(result)
+        except json.JSONDecodeError:
+            _LOGGER.exception("Failed to interpret received JSON for %s", url)
+            return "Cannot interpret JSON from TfL"
+        except OSError:
+            _LOGGER.exception("Internal error during request to %s", url)
+            return "Cannot reach TfL"
+
+    async def _fetch_ldbws(self, hass) -> Union[str, list]:
+        if self.nr_api_key is None:
+            _LOGGER.warning(
+                "Legacy National Rail sensor detected, please recreate to access departure times"
+            )
+            return "Please recreate this entity to access National Rail departure times"
+
+        if self.__ldbws_client is None:
+            self.__ldbws_client = await hass.async_add_executor_job(
+                partial(LDBWS, token=self.nr_api_key)
+            )
+        try:
+            code = await atco_to_crs(hass, self.station)
+            _LOGGER.debug("Found code for station %s: %s", self.station, code)
+            result = await self.__ldbws_client.get_departures(code)
+            _LOGGER.debug("Received LDBWS response: %s", result)
+        except LDBWSError:
+            _LOGGER.exception("Failed to get departures for %s", self.station)
+            return "LDBWS API error"
+        except ValueError:
+            _LOGGER.exception("Invalid station code for %s", self.station)
+            return "Cannot fetch station code"
+
+        return [entry.convert() for entry in result if entry.operator_id == self.line]
 
     def populate(self, json_data, filter_platform):
         self._raw_result = json_data
@@ -90,7 +149,10 @@ class TfLData:
         return len(self._api_json) == 0
 
     def _method_property(self, const) -> str:
-        return "default" if self.method not in const else self.method
+        method = self.method
+        if self.line == "thameslink":
+            method = self.line
+        return "default" if method not in const else method
 
     def _get_expected_departure(self, item) -> str:
         method = self._method_property(TFL_TRANSPORT_TYPES)
