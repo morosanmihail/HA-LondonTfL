@@ -56,7 +56,11 @@ def as_hasl_departures(departures: list[dict]) -> list[Departure]:
                 "transport_mode": (
                     TransportType.METRO
                     if dep["type"] == "Metros"
-                    else TransportType.BUS
+                    else (
+                        TransportType.TRAIN
+                        if dep["type"] == "Trains"
+                        else TransportType.BUS
+                    )
                 ),
                 "group_of_lines": "",
             },
