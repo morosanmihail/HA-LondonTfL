@@ -13,13 +13,14 @@
       },
       "station": {
         "data": {
+          "nr_api_key": "Your OpenLDBWS token",
           "station": "TfL Station",
           "max": "Maximum number of departures to report",
           "platform": "Filter by platform",
           "add_another": "Add another station?",
           "shortenStationNames": "Shorten station names?"
         },
-        "description": "Enter the station you would like to follow.",
+        "description": "Enter the station you would like to follow.{extra_description}",
         "title": "Station"
       }
     }
