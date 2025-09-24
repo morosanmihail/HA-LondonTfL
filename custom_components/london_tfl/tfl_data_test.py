@@ -12,7 +12,9 @@ class TestTfLData(unittest.TestCase):
         with open("custom_components/london_tfl/test/underground.json", "r") as file:
             test_data = file.read()
         json_data = json.loads(test_data)
-        self.tfl_data = TfLData(method="tube", line="jubilee")
+        self.tfl_data = TfLData(
+            method="tube", line="jubilee", station="Stratford Underground Station"
+        )
         self.tfl_data.populate(json_data, filter_platform="")
         self.tfl_data.sort_data(5)
 
@@ -54,6 +56,49 @@ class TestTfLData(unittest.TestCase):
                 "r": 0,
                 "g": 25,
                 "b": 168,
+            },
+            colours,
+        )
+
+
+class TestBusData(unittest.TestCase):
+    def setUp(self):
+        with open("custom_components/london_tfl/test/bus.json", "r") as file:
+            test_data = file.read()
+        json_data = json.loads(test_data)
+        self.tfl_data = TfLData(method="bus", line="241", station="Royal Crest Avenue")
+        self.tfl_data.populate(json_data, filter_platform="")
+        self.tfl_data.sort_data(5)
+
+    def test_get_departures(
+        self,
+    ):
+        departures = self.tfl_data.get_departures()
+
+        self.assertEqual(len(departures), 2)
+        self.assertEqual(departures[0]["destination"], "Silvertown, Royal Wharf")
+        self.assertEqual(departures[0]["type"], "Buses")
+
+        self.assertEqual(departures[1]["destination"], "Silvertown, Royal Wharf")
+        self.assertEqual(departures[1]["type"], "Buses")
+
+        self.assertGreater(departures[1]["expected"], departures[0]["expected"])
+
+    def test_get_station_name(self):
+        self.tfl_data.get_departures()
+        station_name = self.tfl_data.get_station_name()
+
+        self.assertEqual(station_name, "Royal Crest Avenue")
+
+    def test_get_line_colours(self):
+        self.tfl_data.get_departures()
+        colours = self.tfl_data.get_line_colours()
+
+        self.assertEqual(
+            {
+                "r": 220,
+                "g": 36,
+                "b": 31,
             },
             colours,
         )
