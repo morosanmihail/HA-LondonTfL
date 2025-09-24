@@ -12,7 +12,9 @@ class TestTfLData(unittest.TestCase):
         with open("custom_components/london_tfl/test/underground.json", "r") as file:
             test_data = file.read()
         json_data = json.loads(test_data)
-        self.tfl_data = TfLData(method="tube", line="jubilee")
+        self.tfl_data = TfLData(
+            method="tube", line="jubilee", station="Stratford Underground Station"
+        )
         self.tfl_data.populate(json_data, filter_platform="")
         self.tfl_data.sort_data(5)
 
@@ -54,6 +56,44 @@ class TestTfLData(unittest.TestCase):
                 "r": 0,
                 "g": 25,
                 "b": 168,
+            },
+            colours,
+        )
+
+
+class TestBusData(unittest.TestCase):
+    def setUp(self):
+        with open("custom_components/london_tfl/test/bus.json", "r") as file:
+            test_data = file.read()
+        json_data = json.loads(test_data)
+        self.tfl_data = TfLData(method="bus", line="241", station="Mill Road")
+        self.tfl_data.populate(json_data, filter_platform="241")
+        self.tfl_data.sort_data(5)
+
+    def test_get_departures(
+        self,
+    ):
+        departures = self.tfl_data.get_departures()
+
+        self.assertEqual(len(departures), 1)
+        self.assertEqual(departures[0]["destination"], "Hackney Wick, Here East")
+        self.assertEqual(departures[0]["type"], "Buses")
+
+    def test_get_station_name(self):
+        self.tfl_data.get_departures()
+        station_name = self.tfl_data.get_station_name()
+
+        self.assertEqual(station_name, "Mill Road")
+
+    def test_get_line_colours(self):
+        self.tfl_data.get_departures()
+        colours = self.tfl_data.get_line_colours()
+
+        self.assertEqual(
+            {
+                "r": 220,
+                "g": 36,
+                "b": 31,
             },
             colours,
         )
