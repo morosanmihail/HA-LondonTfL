@@ -132,8 +132,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.warning("Something broke.")
             errors["base"] = "request"
         except Exception:
-            _LOGGER.warning("Failed to interpret received %s",
-                            "JSON.", exc_info=1)
+            _LOGGER.warning("Failed to interpret received %s", "JSON.", exc_info=1)
             errors["base"] = "request"
 
         description_placeholders = {"extra_description": ""}
@@ -151,7 +150,9 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     kwargs["default"] = token
 
             extra_fields[vol.Required(CONF_NR_API_KEY, **kwargs)] = cv.string
-            description_placeholders["extra_description"] = """
+            description_placeholders[
+                "extra_description"
+            ] = """
 This line is not supported by the TfL API and requires an extra API token in order to see departure times.
 Please register at https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/Registration and provide the token here.
 If you are already registered, you can reuse the same token as many times as you want.

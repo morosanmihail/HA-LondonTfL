@@ -98,9 +98,7 @@ class LDBWS:
             result.append(
                 LDBWSDeparture(
                     location_name=res.locationName,
-                    platform=service.platform
-                    if service.platform is not None
-                    else "Unknown",
+                    platform=service.platform if service.platform is not None else "?",
                     destination_name=service.destination.location[0].locationName,
                     # FIXME: would be better if we could use `operatorCode` but Tfl doesn't expose it on their side
                     operator_id=service.operator.lower().replace(" ", "-"),
