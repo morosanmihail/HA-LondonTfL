@@ -30,5 +30,70 @@
         "title": "Station"
       }
     }
+  },
+  "options": {
+    "error": {
+      "request": "Failed to connect to TfL servers to retrieve data."
+    },
+    "step": {
+      "init": {
+        "title": "Manage stops",
+        "menu_options": {
+          "add_stop": "Add a stop",
+          "edit_stop": "Edit a stop",
+          "remove_stop": "Remove stops",
+          "finish": "Save and finish"
+        }
+      },
+      "add_stop": {
+        "title": "Add stop — transport method",
+        "description": "Select the method of transportation your line is part of.",
+        "data": {
+          "method": "Transport method"
+        }
+      },
+      "add_line": {
+        "title": "Add stop — line",
+        "description": "Select the line your station is part of.",
+        "data": {
+          "line": "TfL line"
+        }
+      },
+      "add_station": {
+        "title": "Add stop — station",
+        "description": "Select the station and configure how many departures to show.{extra_description}",
+        "data": {
+          "station": "Station",
+          "max": "Maximum number of departures to report",
+          "platform": "Filter by platform (leave blank for all)",
+          "shortenStationNames": "Shorten station names?",
+          "nr_api_key": "Your OpenLDBWS token"
+        }
+      },
+      "edit_stop": {
+        "title": "Edit stop — select stop",
+        "description": "Choose which stop you want to edit.",
+        "data": {
+          "stop_index": "Stop"
+        }
+      },
+      "edit_station": {
+        "title": "Edit stop — {stop_name}",
+        "description": "Update the options for this stop. The station and line cannot be changed here; remove and re-add the stop to change those.",
+        "data": {
+          "max": "Maximum number of departures to report",
+          "platform": "Filter by platform (leave blank for all)",
+          "shortenStationNames": "Shorten station names?",
+          "nr_api_key": "Your OpenLDBWS token"
+        }
+      },
+      "remove_stop": {
+        "title": "Remove stops",
+        "description": "Select the stops you want to remove.",
+        "data": {
+          "stop_indices": "Stops to remove"
+        }
+      }
+    }
   }
 }

@@ -11,6 +11,7 @@ from homeassistant import config_entries, core
 from homeassistant.components.sensor import SensorEntity, PLATFORM_SCHEMA
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
@@ -89,6 +90,14 @@ async def async_setup_entry(
                     nr_api_key=stop.get(CONF_NR_API_KEY),
                 )
             )
+    # Remove entities from the registry that belong to this config entry but
+    # are no longer in the stop list (e.g. after the user removed a stop).
+    registry = er.async_get(hass)
+    new_unique_ids = {s.unique_id for s in sensors}
+    for entry in er.async_entries_for_config_entry(registry, config_entry.entry_id):
+        if entry.unique_id not in new_unique_ids:
+            registry.async_remove(entry.entity_id)
+
     async_add_entities(sensors, update_before_add=True)
 
 

@@ -4,7 +4,7 @@ import logging
 from homeassistant import config_entries, core
 from homeassistant.const import Platform
 
-from .const import DOMAIN
+from .const import CONF_STOPS, DOMAIN
 
 
 PLATFORMS = [Platform.SENSOR]
@@ -17,7 +17,15 @@ async def async_setup_entry(
 ) -> bool:
     """Set up platform from a ConfigEntry."""
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = entry.data
+
+    # Stops can be overridden by the options flow; prefer options over initial data.
+    config = dict(entry.data)
+    if entry.options.get(CONF_STOPS) is not None:
+        config[CONF_STOPS] = entry.options[CONF_STOPS]
+    hass.data[DOMAIN][entry.entry_id] = config
+
+    # Reload the entry whenever the user saves changes via the options flow.
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
     # Forward the setup to the sensor platform.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -27,6 +35,13 @@ async def async_setup_entry(
 async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     return True
+
+
+async def _async_update_listener(
+    hass: core.HomeAssistant, entry: config_entries.ConfigEntry
+) -> None:
+    """Reload the config entry when options are updated."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(
