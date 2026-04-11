@@ -212,5 +212,7 @@ class TfLData:
         return self._last_update
 
     def get_line_colours(self):
+        if self.line in TFL_COLOUR_CODES:
+            return TFL_COLOUR_CODES[self.line]
         method = self._method_property(TFL_COLOUR_CODES)
         return TFL_COLOUR_CODES[method]
