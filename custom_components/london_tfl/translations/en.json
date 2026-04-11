@@ -35,8 +35,7 @@
         "menu_options": {
           "add_stop": "Add a stop",
           "edit_stop": "Edit a stop",
-          "remove_stop": "Remove stops",
-          "finish": "Save and finish"
+          "remove_stop": "Remove stops"
         }
       },
       "add_stop": {
