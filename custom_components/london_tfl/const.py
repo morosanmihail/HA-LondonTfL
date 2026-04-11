@@ -39,6 +39,7 @@ TFL_ALT_ARRIVALS_URL = (
 )
 TFL_BUS_ARRIVALS_URL = "https://api.tfl.gov.uk/StopPoint/{1}/arrivals/?test={2}"
 TFL_STATIONS_URL = "https://api.tfl.gov.uk/line/{0}/stoppoints"
+TFL_TIMETABLE_URL = "https://api.tfl.gov.uk/Line/{0}/Timetable/{1}"
 USE_LDBWS_URL = "use-ldbws-purposefully-not-a-url"
 
 SHORTEN_STATION_NAMES = ["Underground Station", "DLR Station", "Rail Station"]

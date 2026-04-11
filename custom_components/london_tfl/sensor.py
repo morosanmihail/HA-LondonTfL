@@ -12,6 +12,7 @@ from homeassistant.components.sensor import SensorEntity, PLATFORM_SCHEMA
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
@@ -97,6 +98,9 @@ async def async_setup_entry(
     for entry in er.async_entries_for_config_entry(registry, config_entry.entry_id):
         if entry.unique_id not in new_unique_ids:
             registry.async_remove(entry.entity_id)
+
+    platform = entity_platform.async_get_current_platform()
+    platform.async_register_entity_service("refresh_timetable", {}, "async_force_timetable_refresh")
 
     async_add_entities(sensors, update_before_add=True)
 
@@ -203,8 +207,15 @@ class LondonTfLSensor(SensorEntity):
                 return
             self._tfl_data.populate(result, self.filter_platform)
 
+        await self._tfl_data.fetch_timetable(self.hass)
+
         self._tfl_data.sort_data(self.max_items)
         self._state = self._tfl_data.get_state()
+
+    async def async_force_timetable_refresh(self):
+        """Force-refresh timetable data. Called via the refresh_timetable service."""
+        await self._tfl_data.fetch_timetable(self.hass, force=True)
+        self.async_write_ha_state()
 
     @property
     def extra_state_attributes(self):

@@ -1,4 +1,6 @@
+import asyncio
 import datetime
+import logging
 from typing import List
 
 import aiohttp
@@ -9,6 +11,8 @@ from zeep import AsyncClient, xsd
 from zeep.exceptions import Fault
 from zeep.transports import AsyncTransport
 
+_LOGGER = logging.getLogger(__name__)
+
 
 async def fetch(session, url):
     try:
@@ -17,8 +21,12 @@ async def fetch(session, url):
                 url, headers={"Accept": "application/json"}
             ) as response:
                 return await response.text()
-    except:
-        pass
+    except asyncio.TimeoutError:
+        _LOGGER.warning("Request to %s timed out", url)
+    except aiohttp.ClientError as e:
+        _LOGGER.warning("Request to %s failed: %s", url, e)
+    except OSError as e:
+        _LOGGER.warning("Request to %s failed: %s", url, e)
 
 
 async def request(url):

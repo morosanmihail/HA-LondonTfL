@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 
 class TransportType(StrEnum):
@@ -36,6 +36,7 @@ class Departure(TypedDict):
     line: DepartureLine
     # scheduled: str
     expected: str
+    prediction_type: NotRequired[str]
 
 
 def as_hasl_departures(departures: list[dict]) -> list[Departure]:
@@ -46,8 +47,9 @@ def as_hasl_departures(departures: list[dict]) -> list[Departure]:
     the format can be found [here](https://github.com/hasl-sensor/lovelace-hasl-departure-card/blob/master/src/models.ts)
     """
 
-    return [
-        {
+    result = []
+    for dep in departures:
+        entry: Departure = {
             "destination": dep["destination"],
             "deviations": None,
             "direction_code": 0,
@@ -66,5 +68,7 @@ def as_hasl_departures(departures: list[dict]) -> list[Departure]:
             },
             "expected": dep["expected"],
         }
-        for dep in departures
-    ]
+        if "prediction_type" in dep:
+            entry["prediction_type"] = dep["prediction_type"]
+        result.append(entry)
+    return result
