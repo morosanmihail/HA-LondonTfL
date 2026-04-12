@@ -382,3 +382,58 @@ class TestTimetableMerging:
         departures = tfl.get_departures()
         matched = [d for d in departures if d["prediction_type"] == "scheduled+realtime"]
         assert len(matched) == 1
+
+
+class TestDeparturesModeFilter:
+    def _make_tfl_with_mixed(self) -> TfLData:
+        """TfLData with one realtime-only, one scheduled+realtime, one scheduled-only departure."""
+        tfl = TfLData(method="bus", line="241", station="490000000X")
+        # Realtime at +5 min (no timetable match) and +20 min (timetable match)
+        tfl.populate([_make_realtime_entry(5), _make_realtime_entry(20)], filter_platform="241")
+        tfl.sort_data(10)
+        # Timetable at +20 min (matches realtime) and +40 min (no realtime match)
+        tfl.set_timetable(_make_timetable("490000000X", [20, 40], towards="Custom House"))
+        return tfl
+
+    def test_mode_all_returns_all(self) -> None:
+        tfl = self._make_tfl_with_mixed()
+        departures = tfl.get_departures("all")
+        types = {d["prediction_type"] for d in departures}
+        assert "realtime" in types
+        assert "scheduled+realtime" in types
+        assert "scheduled" in types
+        assert len(departures) == 3
+
+    def test_mode_realtime_excludes_scheduled_only(self) -> None:
+        tfl = self._make_tfl_with_mixed()
+        departures = tfl.get_departures("realtime")
+        for d in departures:
+            assert d["prediction_type"] != "scheduled"
+        types = {d["prediction_type"] for d in departures}
+        assert "realtime" in types
+        assert "scheduled+realtime" in types
+        assert len(departures) == 2
+
+    def test_mode_scheduled_excludes_realtime_only(self) -> None:
+        tfl = self._make_tfl_with_mixed()
+        departures = tfl.get_departures("scheduled")
+        for d in departures:
+            assert d["prediction_type"] != "realtime"
+        types = {d["prediction_type"] for d in departures}
+        assert "scheduled" in types
+        assert "scheduled+realtime" in types
+        assert len(departures) == 2
+
+    def test_mode_default_equals_all(self) -> None:
+        tfl = self._make_tfl_with_mixed()
+        assert tfl.get_departures() == tfl.get_departures("all")
+
+    def test_get_state_from_departures_returns_hhmm(self) -> None:
+        tfl = self._make_tfl_with_mixed()
+        departures = tfl.get_departures("all")
+        state = tfl.get_state_from_departures(departures)
+        assert re.fullmatch(r"\d{2}:\d{2}", state)
+
+    def test_get_state_from_departures_empty_returns_none_string(self) -> None:
+        tfl = TfLData(method="bus", line="241", station="490000000X")
+        assert tfl.get_state_from_departures([]) == "None"

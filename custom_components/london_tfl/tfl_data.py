@@ -287,7 +287,7 @@ class TfLData:
         template = TFL_TRANSPORT_TYPES[method]["url"]
         return template.format(self.line, station, test)
 
-    def get_departures(self):
+    def _compute_all_departures(self):
         scheduled = self._get_scheduled_departures_today()
         matched_scheduled_indices = set()
 
@@ -356,6 +356,32 @@ class TfLData:
 
         departures.sort(key=lambda d: d["expected"])
         return departures
+
+    def get_departures(self, mode: str = "all"):
+        """Return departures filtered by mode.
+
+        mode="realtime"  – only entries with live tracking data
+                           (prediction_type "realtime" or "scheduled+realtime")
+        mode="scheduled" – only entries present in the timetable
+                           (prediction_type "scheduled" or "scheduled+realtime")
+        mode="all"       – all departures regardless of source
+        """
+        all_departures = self._compute_all_departures()
+        if mode == "realtime":
+            return [d for d in all_departures if d["prediction_type"] in ("realtime", "scheduled+realtime")]
+        if mode == "scheduled":
+            return [d for d in all_departures if d["prediction_type"] in ("scheduled", "scheduled+realtime")]
+        return all_departures
+
+    def get_state_from_departures(self, departures: list) -> str:
+        """Return HH:MM state string from the first entry in a departures list."""
+        if departures:
+            return (
+                parser.parse(departures[0]["expected"])
+                .astimezone(ZoneInfo("Europe/London"))
+                .strftime("%H:%M")
+            )
+        return "None"
 
     def get_station_name(self):
         return self._station_name
