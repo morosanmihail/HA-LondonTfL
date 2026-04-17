@@ -12,6 +12,7 @@ from homeassistant.components.sensor import SensorEntity, PLATFORM_SCHEMA
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
@@ -72,24 +73,32 @@ async def async_setup_entry(
     sensors = []
     for stop in stops:
         if stop[CONF_STATION] is not None and stop[CONF_LINE] is not None:
-            sensors.append(
-                LondonTfLSensor(
-                    name=name,
-                    method=stop[CONF_METHOD] if CONF_METHOD in stop else "",
-                    line=stop[CONF_LINE],
-                    station=stop[CONF_STATION],
-                    platform_filter=(
-                        stop[CONF_PLATFORM] if CONF_PLATFORM in stop else ""
-                    ),
-                    max=stop[CONF_MAX] if CONF_MAX in stop else DEFAULT_MAX,
-                    shortenStationNames=(
-                        stop[CONF_SHORTEN_STATION_NAMES]
-                        if CONF_SHORTEN_STATION_NAMES in stop
-                        else False
-                    ),
-                    nr_api_key=stop.get(CONF_NR_API_KEY),
-                )
+            shared_data = TfLData(
+                method=stop[CONF_METHOD] if CONF_METHOD in stop else "",
+                line=stop[CONF_LINE],
+                station=stop[CONF_STATION],
+                nr_api_key=stop.get(CONF_NR_API_KEY),
             )
+            common_kwargs = dict(
+                name=name,
+                method=stop[CONF_METHOD] if CONF_METHOD in stop else "",
+                line=stop[CONF_LINE],
+                station=stop[CONF_STATION],
+                platform_filter=(
+                    stop[CONF_PLATFORM] if CONF_PLATFORM in stop else ""
+                ),
+                max=stop[CONF_MAX] if CONF_MAX in stop else DEFAULT_MAX,
+                shortenStationNames=(
+                    stop[CONF_SHORTEN_STATION_NAMES]
+                    if CONF_SHORTEN_STATION_NAMES in stop
+                    else False
+                ),
+                nr_api_key=stop.get(CONF_NR_API_KEY),
+                tfl_data=shared_data,
+            )
+            sensors.append(LondonTfLSensor(departure_mode="realtime", **common_kwargs))
+            sensors.append(LondonTfLSensor(departure_mode="scheduled", **common_kwargs))
+            sensors.append(LondonTfLSensor(departure_mode="all", **common_kwargs))
     # Remove entities from the registry that belong to this config entry but
     # are no longer in the stop list (e.g. after the user removed a stop).
     registry = er.async_get(hass)
@@ -97,6 +106,9 @@ async def async_setup_entry(
     for entry in er.async_entries_for_config_entry(registry, config_entry.entry_id):
         if entry.unique_id not in new_unique_ids:
             registry.async_remove(entry.entity_id)
+
+    platform = entity_platform.async_get_current_platform()
+    platform.async_register_entity_service("refresh_timetable", {}, "async_force_timetable_refresh")
 
     async_add_entities(sensors, update_before_add=True)
 
@@ -114,18 +126,26 @@ async def async_setup_platform(
     sensors = []
     for stop in stops:
         if stop[CONF_STATION] is not None and stop[CONF_LINE] is not None:
-            sensors.append(
-                LondonTfLSensor(
-                    name,
-                    stop[CONF_METHOD],
-                    stop[CONF_LINE],
-                    stop[CONF_STATION],
-                    stop[CONF_PLATFORM],
-                    stop[CONF_MAX],
-                    stop[CONF_SHORTEN_STATION_NAMES],
-                    nr_api_key=stop.get(CONF_NR_API_KEY),
-                )
+            shared_data = TfLData(
+                method=stop[CONF_METHOD],
+                line=stop[CONF_LINE],
+                station=stop[CONF_STATION],
+                nr_api_key=stop.get(CONF_NR_API_KEY),
             )
+            common_kwargs = dict(
+                name=name,
+                method=stop[CONF_METHOD],
+                line=stop[CONF_LINE],
+                station=stop[CONF_STATION],
+                platform_filter=stop[CONF_PLATFORM],
+                max=stop[CONF_MAX],
+                shortenStationNames=stop[CONF_SHORTEN_STATION_NAMES],
+                nr_api_key=stop.get(CONF_NR_API_KEY),
+                tfl_data=shared_data,
+            )
+            sensors.append(LondonTfLSensor(departure_mode="realtime", **common_kwargs))
+            sensors.append(LondonTfLSensor(departure_mode="scheduled", **common_kwargs))
+            sensors.append(LondonTfLSensor(departure_mode="all", **common_kwargs))
     async_add_entities(sensors, update_before_add=True)
 
 
@@ -143,27 +163,34 @@ class LondonTfLSensor(SensorEntity):
         shortenStationNames,
         *,
         nr_api_key: Optional[str] = None,
+        departure_mode: str = "realtime",
+        tfl_data: Optional[TfLData] = None,
     ):
         """Initialize the sensor."""
         self._platformname = name
-        self._name = name + "_" + line + "_" + station
+        mode_suffix = "" if departure_mode == "realtime" else ("_" + departure_mode)
+        self._name = name + "_" + line + "_" + station + mode_suffix
+        self.entity_id = "sensor." + self._name.lower().replace(" ", "_")
         self.method = method
         self.line = line
         self.station = station
         self.filter_platform = platform_filter.strip() if platform_filter else ""
         self.max_items = int(max)
         self._shorten_station_names = shortenStationNames
+        self.departure_mode = departure_mode
 
         self._state = None
         self._destination = ""
-        self._tfl_data = TfLData(
+        self._departures = []
+        self._tfl_data = tfl_data or TfLData(
             method=method, line=line, station=station, nr_api_key=nr_api_key
         )
 
     @property
     def unique_id(self):
         filter_append = "" if not self.filter_platform else ("_" + self.filter_platform)
-        return self._platformname + "_" + self.line + "_" + self.station + filter_append
+        mode_suffix = "" if self.departure_mode == "realtime" else ("_" + self.departure_mode)
+        return self._platformname + "_" + self.line + "_" + self.station + filter_append + mode_suffix
 
     @property
     def name(self) -> str:
@@ -173,11 +200,16 @@ class LondonTfLSensor(SensorEntity):
             station = shortenName(station)
             destination = shortenName(destination)
 
+        mode_suffix = {
+            "scheduled": " (Scheduled)",
+            "all": " (All)",
+        }.get(self.departure_mode, "")
+
         if destination and station:
-            return "{0} to {1}".format(station, destination)
+            return "{0} to {1}{2}".format(station, destination, mode_suffix)
         if station:
-            return "{0} - Idle".format(station)
-        return self._name
+            return "{0}{1}".format(station, mode_suffix)
+        return self._name + mode_suffix
 
     @property
     def icon(self):
@@ -203,8 +235,16 @@ class LondonTfLSensor(SensorEntity):
                 return
             self._tfl_data.populate(result, self.filter_platform)
 
+        await self._tfl_data.fetch_timetable(self.hass)
+
         self._tfl_data.sort_data(self.max_items)
-        self._state = self._tfl_data.get_state()
+        self._departures = self._tfl_data.get_departures(self.departure_mode)
+        self._state = self._tfl_data.get_state_from_departures(self._departures)
+
+    async def async_force_timetable_refresh(self):
+        """Force-refresh timetable data. Called via the refresh_timetable service."""
+        await self._tfl_data.fetch_timetable(self.hass, force=True)
+        self.async_write_ha_state()
 
     @property
     def extra_state_attributes(self):
@@ -212,10 +252,10 @@ class LondonTfLSensor(SensorEntity):
         attributes["last_refresh"] = self._tfl_data.get_last_update()
         attributes["line_colours"] = self._tfl_data.get_line_colours()
 
-        if self._tfl_data.is_empty():
+        if not self._departures:
             return attributes
 
-        departures = self._tfl_data.get_departures()
+        departures = self._departures
         attributes["departures"] = as_hasl_departures(departures)
 
         data = [

@@ -77,15 +77,10 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not result:
                 _LOGGER.warning("There was no reply from TfL servers.")
                 errors["base"] = "request"
-            result = json.loads(result)
-            lines = {item["id"]: item["name"] for item in result}
-        except OSError:
-            _LOGGER.warning("Something broke.")
-            errors["base"] = "request"
+            else:
+                lines = {item["id"]: item["name"] for item in json.loads(result)}
         except Exception:
-            _LOGGER.warning(
-                "Failed to interpret received %s", "JSON. " + str(result), exc_info=1
-            )
+            _LOGGER.warning("Failed to fetch lines", exc_info=True)
             errors["base"] = "request"
 
         return self.async_show_form(
@@ -127,19 +122,14 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not result:
                 _LOGGER.warning("There was no reply from TfL servers.")
                 errors["base"] = "request"
-            result = json.loads(result)
-            stations = {}
-            if self.data["lastMethod"] != "bus":
-                stations = {
-                    item["stationNaptan"]: item["commonName"] for item in result
-                }
             else:
-                stations = {item["id"]: item["commonName"] for item in result}
-        except OSError:
-            _LOGGER.warning("Something broke.")
-            errors["base"] = "request"
+                data = json.loads(result)
+                if self.data["lastMethod"] != "bus":
+                    stations = {item["stationNaptan"]: item["commonName"] for item in data}
+                else:
+                    stations = {item["id"]: item["commonName"] for item in data}
         except Exception:
-            _LOGGER.warning("Failed to interpret received %s", "JSON.", exc_info=1)
+            _LOGGER.warning("Failed to fetch stations", exc_info=True)
             errors["base"] = "request"
 
         description_placeholders = {"extra_description": ""}
@@ -199,8 +189,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     def _stop_label(self, stop: dict[str, Any]) -> str:
         """Return a human-readable label for a stop."""
-        name = stop.get("station_display_name") or stop.get(CONF_STATION, "?")
+        station_id = stop.get(CONF_STATION, "?")
+        name = stop.get("station_display_name") or station_id
         return f"{stop.get(CONF_METHOD, '?')} / {stop.get(CONF_LINE, '?')} / {name}"
+
+    def _save(self):
+        """Persist the current stops list and close the options flow."""
+        return self.async_create_entry(title="", data={CONF_STOPS: self._stops})
 
     # ── Entry point (menu) ────────────────────────────────────────────────────
 
@@ -209,7 +204,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         menu_options: list[str] = ["add_stop"]
         if self._stops:
             menu_options += ["edit_stop", "remove_stop"]
-        menu_options.append("finish")
         return self.async_show_menu(step_id="init", menu_options=menu_options)
 
     # ── Add stop (method → line → station) ───────────────────────────────────
@@ -277,7 +271,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                 }
             )
-            return await self.async_step_init()
+            return self._save()
 
         errors: dict[str, str] = {}
         self._current_stations = {}
@@ -366,7 +360,7 @@ Please register at https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/Reg
                 CONF_PLATFORM: user_input[CONF_PLATFORM],
                 CONF_SHORTEN_STATION_NAMES: user_input[CONF_SHORTEN_STATION_NAMES],
             }
-            return await self.async_step_init()
+            return self._save()
 
         extra_fields: dict = {}
         if (
@@ -410,7 +404,7 @@ Please register at https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/Reg
             self._stops = [
                 s for i, s in enumerate(self._stops) if i not in indices_to_remove
             ]
-            return await self.async_step_init()
+            return self._save()
 
         stop_options = [
             selector.SelectOptionDict(value=str(i), label=self._stop_label(s))
@@ -429,8 +423,3 @@ Please register at https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/Reg
             ),
         )
 
-    # ── Finish ────────────────────────────────────────────────────────────────
-
-    async def async_step_finish(self, user_input: dict[str, Any] | None = None):
-        """Save the updated stops list to entry.options and close the flow."""
-        return self.async_create_entry(title="", data={CONF_STOPS: self._stops})

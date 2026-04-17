@@ -1,0 +1,7 @@
+refresh_timetable:
+  name: Refresh Timetable
+  description: Force-refresh the timetable data for a London TfL sensor.
+  target:
+    entity:
+      integration: london_tfl
+      domain: sensor

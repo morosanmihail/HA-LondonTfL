@@ -1,7 +1,7 @@
 import json
 import logging
 import uuid
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 from dateutil import parser
 from functools import partial
 from typing import Optional, Union
@@ -12,6 +12,7 @@ from custom_components.london_tfl.codes import atco_to_crs
 from custom_components.london_tfl.const import (
     TFL_TRANSPORT_TYPES,
     TFL_COLOUR_CODES,
+    TFL_TIMETABLE_URL,
     USE_LDBWS_URL,
 )
 from custom_components.london_tfl.network import LDBWS, LDBWSError, request
@@ -53,6 +54,8 @@ class TfLData:
         self.station = station
         self.nr_api_key = nr_api_key
         self.__ldbws_client = None  # initialized lazily
+        self._timetable_json = None
+        self._timetable_last_fetch = None
 
     async def fetch(self, hass) -> Union[str, list]:
         url = self.url(station=self.station, test=str(uuid.uuid4()))
@@ -98,6 +101,117 @@ class TfLData:
             return "Cannot fetch station code"
 
         return [entry.convert() for entry in result if entry.operator_id == self.line]
+
+    async def fetch_timetable(self, hass, force: bool = False) -> bool:
+        """Fetch timetable data. Returns True if timetable is available."""
+        if self.method == "national-rail":
+            return False
+
+        now = datetime.now()
+        if (
+            not force
+            and self._timetable_last_fetch is not None
+            and (now - self._timetable_last_fetch).total_seconds() < 3 * 24 * 3600
+        ):
+            return self._timetable_json is not None
+
+        url = TFL_TIMETABLE_URL.format(self.line, self.station)
+        try:
+            result = await request(url)
+            if result:
+                parsed = json.loads(result)
+                if not isinstance(parsed, dict):
+                    _LOGGER.warning("Unexpected timetable response format from %s", url)
+                    return False
+                self._timetable_json = parsed
+                self._timetable_last_fetch = now
+                return True
+        except Exception:
+            _LOGGER.warning("Failed to fetch timetable from %s", url, exc_info=True)
+        return False
+
+    def set_timetable(self, timetable_json: dict) -> None:
+        """Set timetable data directly (e.g. from a local file for testing)."""
+        self._timetable_json = timetable_json
+        self._timetable_last_fetch = datetime.now()
+
+    def _get_scheduled_departures_today(self) -> list:
+        """Parse timetable and return today's scheduled departures as (datetime_utc, towards) pairs."""
+        if not self._timetable_json:
+            return []
+
+        try:
+            return self._parse_scheduled_departures_today()
+        except Exception:
+            _LOGGER.warning("Failed to parse timetable data", exc_info=True)
+            return []
+
+    def _parse_scheduled_departures_today(self) -> list:
+        timetable = self._timetable_json.get("timetable", {})
+        routes = timetable.get("routes", [])
+        if not routes:
+            return []
+
+        departure_stop_id = timetable.get("departureStopId", "")
+        interval_offset = 0.0
+        if departure_stop_id != self.station:
+            for si in routes[0].get("stationIntervals", []):
+                for interval in si.get("intervals", []):
+                    if interval["stopId"] == self.station:
+                        interval_offset = float(interval["timeToArrival"])
+                        break
+                if interval_offset:
+                    break
+
+        towards = ""
+        for stop in self._timetable_json.get("stops", []):
+            if stop.get("id") == self.station:
+                towards = stop.get("towards", "")
+                break
+        if not towards:
+            for stop in self._timetable_json.get("stations", []):
+                if stop.get("id") == self.station:
+                    towards = stop.get("towards", "")
+                    break
+
+        now_london = datetime.now(ZoneInfo("Europe/London"))
+        weekday = now_london.weekday()
+        if weekday < 5:
+            schedule_name = "Monday to Friday"
+        elif weekday == 5:
+            schedule_name = "Saturday"
+        else:
+            schedule_name = "Sunday"
+
+        schedules = routes[0].get("schedules", [])
+        target_schedule = next(
+            (s for s in schedules if s["name"] == schedule_name),
+            schedules[0] if schedules else None,
+        )
+        if not target_schedule:
+            return []
+
+        now_utc = datetime.now(UTC)
+        window_start = now_utc.timestamp() - 60
+        window_end = now_utc.timestamp() + 3600
+
+        result = []
+        for journey in target_schedule.get("knownJourneys", []):
+            hour = int(journey["hour"])
+            minute = int(journey["minute"])
+            # Hours >= 24 represent times past midnight on the following day
+            if hour >= 24:
+                dt_london = now_london.replace(hour=hour - 24, minute=minute, second=0, microsecond=0) + timedelta(days=1)
+            else:
+                dt_london = now_london.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            if interval_offset:
+                dt_london = dt_london + timedelta(minutes=interval_offset)
+            dt_utc = dt_london.astimezone(UTC)
+            ts = dt_utc.timestamp()
+            if window_start <= ts <= window_end:
+                result.append((dt_utc, towards))
+
+        return result
 
     def populate(self, json_data, filter_platform):
         self._raw_result = json_data
@@ -173,17 +287,33 @@ class TfLData:
         template = TFL_TRANSPORT_TYPES[method]["url"]
         return template.format(self.line, station, test)
 
-    def get_departures(self):
+    def _compute_all_departures(self):
+        scheduled = self._get_scheduled_departures_today()
+        matched_scheduled_indices = set()
+
+        method = self._method_property(TFL_TRANSPORT_TYPES)
+        use_destination_name = TFL_TRANSPORT_TYPES[method]["use_destination_name"]
+        transport_type = TFL_TRANSPORT_TYPES[method]["transport_type"]
+        icon = TFL_TRANSPORT_TYPES[method]["icon"]
+
         departures = []
         for item in self._api_json:
-            method = self._method_property(TFL_TRANSPORT_TYPES)
-            use_destination_name = TFL_TRANSPORT_TYPES[method]["use_destination_name"]
-            transport_type = TFL_TRANSPORT_TYPES[method]["transport_type"]
-            icon = TFL_TRANSPORT_TYPES[method]["icon"]
-
             expected_departure = self._get_expected_departure(item)
             expected_arrival = self._get_expected_arrival(item)
             platform = self._get_platform_name(item)
+
+            prediction_type = "realtime"
+            if scheduled:
+                try:
+                    arrival_dt = parser.parse(expected_arrival).replace(tzinfo=UTC)
+                    for i, (sched_dt, _) in enumerate(scheduled):
+                        if abs((arrival_dt - sched_dt).total_seconds()) <= 180:
+                            prediction_type = "scheduled+realtime"
+                            matched_scheduled_indices.add(i)
+                            break
+                except Exception:
+                    pass
+
             departure = {
                 "time_to_station": time_to_station(item, expected_arrival, False),
                 "platform": platform,
@@ -196,14 +326,62 @@ class TfLData:
                 "type": transport_type,
                 "groupofline": "",
                 "icon": icon,
+                "prediction_type": prediction_type,
             }
-
             departures.append(departure)
 
             if len(self._station_name) == 0:
                 self._station_name = item["stationName"]
 
+        for i, (sched_dt, towards) in enumerate(scheduled):
+            if i in matched_scheduled_indices:
+                continue
+            sched_iso = sched_dt.isoformat()
+            fake_item = {"towards": towards, "destinationName": towards}
+            departure = {
+                "time_to_station": time_to_station(fake_item, sched_iso, False),
+                "platform": self.line,
+                "line": self.line,
+                "direction": 0,
+                "departure": sched_iso,
+                "destination": towards,
+                "time": time_to_station(fake_item, sched_iso, False, "{0}"),
+                "expected": sched_iso,
+                "type": transport_type,
+                "groupofline": "",
+                "icon": icon,
+                "prediction_type": "scheduled",
+            }
+            departures.append(departure)
+
+        departures.sort(key=lambda d: d["expected"])
         return departures
+
+    def get_departures(self, mode: str = "all"):
+        """Return departures filtered by mode.
+
+        mode="realtime"  – only entries with live tracking data
+                           (prediction_type "realtime" or "scheduled+realtime")
+        mode="scheduled" – only entries present in the timetable
+                           (prediction_type "scheduled" or "scheduled+realtime")
+        mode="all"       – all departures regardless of source
+        """
+        all_departures = self._compute_all_departures()
+        if mode == "realtime":
+            return [d for d in all_departures if d["prediction_type"] in ("realtime", "scheduled+realtime")]
+        if mode == "scheduled":
+            return [d for d in all_departures if d["prediction_type"] in ("scheduled", "scheduled+realtime")]
+        return all_departures
+
+    def get_state_from_departures(self, departures: list) -> str:
+        """Return HH:MM state string from the first entry in a departures list."""
+        if departures:
+            return (
+                parser.parse(departures[0]["expected"])
+                .astimezone(ZoneInfo("Europe/London"))
+                .strftime("%H:%M")
+            )
+        return "None"
 
     def get_station_name(self):
         return self._station_name
