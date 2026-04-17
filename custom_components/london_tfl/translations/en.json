@@ -1,5 +1,8 @@
 {
   "config": {
+    "abort": {
+      "cannot_connect": "Could not connect to TfL servers. Please check your internet connection and try again."
+    },
     "error": {
       "request": "Failed to connect to TfL servers to retrieve data."
     },
@@ -26,6 +29,9 @@
     }
   },
   "options": {
+    "abort": {
+      "cannot_connect": "Could not connect to TfL servers. Please check your internet connection and try again."
+    },
     "error": {
       "request": "Failed to connect to TfL servers to retrieve data."
     },

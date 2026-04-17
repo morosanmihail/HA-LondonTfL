@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import logging
 from typing import List
+from zoneinfo import ZoneInfo
 
 import aiohttp
 import async_timeout
@@ -43,15 +44,18 @@ class LDBWSDeparture:
     scheduled_departure_time: str
 
     def convert(self) -> dict:
-        now = datetime.datetime.now()
+        london_tz = ZoneInfo("Europe/London")
+        now_london = datetime.datetime.now(london_tz)
         hours, minutes = self.scheduled_departure_time.split(":")
-        if (
-            hours.startswith("0") and now.hour > 17
-        ):  # i.e. we have a departure at 0X:YZ and it's later in the day so assume it's for the next day
-            now += datetime.timedelta(days=1)
-        departure_dt = now.replace(
-            hour=int(hours), minute=int(minutes), second=0, microsecond=0
-        ).isoformat()
+        hour_int = int(hours)
+        # Only treat as next-day for genuinely overnight departures (before 04:00)
+        # when it's already late evening (20:00+). The old startswith("0") check
+        # wrongly advanced 09:xx departures.
+        if hour_int < 4 and now_london.hour >= 20:
+            now_london += datetime.timedelta(days=1)
+        departure_dt = now_london.replace(
+            hour=hour_int, minute=int(minutes), second=0, microsecond=0
+        ).astimezone(datetime.timezone.utc).isoformat()
 
         return {
             # Arrival is always None so we just use the departure instead
@@ -101,8 +105,15 @@ class LDBWS:
             )
         except Fault as e:
             raise LDBWSError("could not get departure board") from e
+        if res.trainServices is None:
+            return []
         result = []
         for service in res.trainServices.service:
+            if (
+                service.destination is None
+                or not service.destination.location
+            ):
+                continue
             result.append(
                 LDBWSDeparture(
                     location_name=res.locationName,

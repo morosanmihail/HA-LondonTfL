@@ -331,7 +331,7 @@ class TfLData:
             departures.append(departure)
 
             if len(self._station_name) == 0:
-                self._station_name = item["stationName"]
+                self._station_name = item.get("stationName", "")
 
         for i, (sched_dt, towards) in enumerate(scheduled):
             if i in matched_scheduled_indices:
