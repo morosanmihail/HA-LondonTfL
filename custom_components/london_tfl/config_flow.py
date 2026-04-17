@@ -4,7 +4,7 @@ from typing import Any
 
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers import selector
+from homeassistant.helpers import selector, translation
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 
@@ -148,11 +148,12 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     kwargs["default"] = token
 
             extra_fields[vol.Required(CONF_NR_API_KEY, **kwargs)] = cv.string
-            description_placeholders["extra_description"] = """
-This line is not supported by the TfL API and requires an extra API token in order to see departure times.
-Please register at https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/Registration and provide the token here.
-If you are already registered, you can reuse the same token as many times as you want.
-"""
+            translations = await translation.async_get_translations(
+                self.hass, self.hass.config.language, "config", {DOMAIN}
+            )
+            description_placeholders["extra_description"] = translations.get(
+                f"component.{DOMAIN}.config.step.station.ldbws_description", ""
+            )
 
         return self.async_show_form(
             step_id="station",
@@ -312,10 +313,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     kwargs["default"] = stop[CONF_NR_API_KEY]
                     break
             extra_fields[vol.Required(CONF_NR_API_KEY, **kwargs)] = cv.string
-            description_placeholders["extra_description"] = """
-This line is not supported by the TfL API and requires an extra API token in order to see departure times.
-Please register at https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/Registration and provide the token here.
-"""
+            translations = await translation.async_get_translations(
+                self.hass, self.hass.config.language, "options", {DOMAIN}
+            )
+            description_placeholders["extra_description"] = translations.get(
+                f"component.{DOMAIN}.options.step.add_station.ldbws_description", ""
+            )
 
         return self.async_show_form(
             step_id="add_station",
