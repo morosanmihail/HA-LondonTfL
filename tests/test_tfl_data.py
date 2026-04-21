@@ -404,14 +404,11 @@ class TestDeparturesModeFilter:
         assert "scheduled" in types
         assert len(departures) == 3
 
-    def test_mode_realtime_excludes_scheduled_only(self) -> None:
+    def test_mode_realtime_comes_directly_from_api(self) -> None:
         tfl = self._make_tfl_with_mixed()
         departures = tfl.get_departures("realtime")
-        for d in departures:
-            assert d["prediction_type"] != "scheduled"
-        types = {d["prediction_type"] for d in departures}
-        assert "realtime" in types
-        assert "scheduled+realtime" in types
+        # All entries come straight from the realtime API — no timetable merging
+        assert all(d["prediction_type"] == "realtime" for d in departures)
         assert len(departures) == 2
 
     def test_mode_scheduled_excludes_realtime_only(self) -> None:

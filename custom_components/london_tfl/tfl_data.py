@@ -357,18 +357,52 @@ class TfLData:
         departures.sort(key=lambda d: d["expected"])
         return departures
 
+    def _compute_realtime_departures(self):
+        """Build departures directly from the realtime API result, no timetable involvement."""
+        method = self._method_property(TFL_TRANSPORT_TYPES)
+        use_destination_name = TFL_TRANSPORT_TYPES[method]["use_destination_name"]
+        transport_type = TFL_TRANSPORT_TYPES[method]["transport_type"]
+        icon = TFL_TRANSPORT_TYPES[method]["icon"]
+
+        departures = []
+        for item in self._api_json:
+            expected_departure = self._get_expected_departure(item)
+            expected_arrival = self._get_expected_arrival(item)
+            platform = self._get_platform_name(item)
+
+            departure = {
+                "time_to_station": time_to_station(item, expected_arrival, False),
+                "platform": platform,
+                "line": platform,
+                "direction": 0,
+                "departure": expected_departure,
+                "destination": get_destination(item, use_destination_name),
+                "time": time_to_station(item, expected_departure, False, "{0}"),
+                "expected": expected_arrival,
+                "type": transport_type,
+                "groupofline": "",
+                "icon": icon,
+                "prediction_type": "realtime",
+            }
+            departures.append(departure)
+
+            if len(self._station_name) == 0:
+                self._station_name = item.get("stationName", "")
+
+        departures.sort(key=lambda d: d["expected"])
+        return departures
+
     def get_departures(self, mode: str = "all"):
         """Return departures filtered by mode.
 
-        mode="realtime"  – only entries with live tracking data
-                           (prediction_type "realtime" or "scheduled+realtime")
+        mode="realtime"  – only entries from the live API, no timetable merging
         mode="scheduled" – only entries present in the timetable
                            (prediction_type "scheduled" or "scheduled+realtime")
         mode="all"       – all departures regardless of source
         """
-        all_departures = self._compute_all_departures()
         if mode == "realtime":
-            return [d for d in all_departures if d["prediction_type"] in ("realtime", "scheduled+realtime")]
+            return self._compute_realtime_departures()
+        all_departures = self._compute_all_departures()
         if mode == "scheduled":
             return [d for d in all_departures if d["prediction_type"] in ("scheduled", "scheduled+realtime")]
         return all_departures
