@@ -4,7 +4,7 @@ from typing import Any
 
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers import selector, translation
+from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 
@@ -133,7 +133,6 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not stations:
             return self.async_abort(reason="cannot_connect")
 
-        description_placeholders = {"extra_description": ""}
         extra_fields = {}
 
         if (
@@ -148,12 +147,6 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     kwargs["default"] = token
 
             extra_fields[vol.Required(CONF_NR_API_KEY, **kwargs)] = cv.string
-            translations = await translation.async_get_translations(
-                self.hass, self.hass.config.language, "config", {DOMAIN}
-            )
-            description_placeholders["extra_description"] = translations.get(
-                f"component.{DOMAIN}.config.step.station.ldbws_description", ""
-            )
 
         return self.async_show_form(
             step_id="station",
@@ -168,7 +161,6 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
-            description_placeholders=description_placeholders,
         )
 
 
@@ -304,7 +296,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_abort(reason="cannot_connect")
 
         extra_fields: dict = {}
-        description_placeholders = {"extra_description": ""}
         if self._last_method == "national-rail" and self._last_line != "thameslink":
             # Reuse a token already entered for another NR stop in this session.
             kwargs: dict = {}
@@ -313,12 +304,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     kwargs["default"] = stop[CONF_NR_API_KEY]
                     break
             extra_fields[vol.Required(CONF_NR_API_KEY, **kwargs)] = cv.string
-            translations = await translation.async_get_translations(
-                self.hass, self.hass.config.language, "options", {DOMAIN}
-            )
-            description_placeholders["extra_description"] = translations.get(
-                f"component.{DOMAIN}.options.step.add_station.ldbws_description", ""
-            )
 
         return self.async_show_form(
             step_id="add_station",
@@ -332,7 +317,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 }
             ),
             errors=errors,
-            description_placeholders=description_placeholders,
         )
 
     # ── Edit stop ─────────────────────────────────────────────────────────────

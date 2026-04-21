@@ -3,11 +3,14 @@ import logging
 
 from homeassistant import config_entries, core
 from homeassistant.const import Platform
+import homeassistant.helpers.config_validation as cv
 
 from .const import CONF_STOPS, DOMAIN
 
 
 PLATFORMS = [Platform.SENSOR]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
 

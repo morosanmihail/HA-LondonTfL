@@ -23,8 +23,10 @@
           "add_another": "Add another station?",
           "shortenStationNames": "Shorten station names?"
         },
-        "description": "Enter the station you would like to follow.{extra_description}",
-        "ldbws_description": "\nThis line is not supported by the TfL API and requires an extra API token in order to see departure times.\nPlease register at https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/Registration and provide the token here.\nIf you are already registered, you can reuse the same token as many times as you want.",
+        "description": "Enter the station you would like to follow.",
+        "data_description": {
+          "nr_api_key": "This line is not supported by the TfL API and requires an extra API token in order to see departure times.\nPlease register at https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/Registration and provide the token here.\nIf you are already registered, you can reuse the same token as many times as you want."
+        },
         "title": "Station"
       }
     }
@@ -61,8 +63,10 @@
       },
       "add_station": {
         "title": "Add stop — station",
-        "description": "Select the station and configure how many departures to show.{extra_description}",
-        "ldbws_description": "\nThis line is not supported by the TfL API and requires an extra API token in order to see departure times.\nPlease register at https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/Registration and provide the token here.",
+        "description": "Select the station and configure how many departures to show.",
+        "data_description": {
+          "nr_api_key": "This line is not supported by the TfL API and requires an extra API token in order to see departure times.\nPlease register at https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/Registration and provide the token here."
+        },
         "data": {
           "station": "Station",
           "max": "Maximum number of departures to report",
