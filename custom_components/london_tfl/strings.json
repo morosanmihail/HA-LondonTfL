@@ -23,6 +23,7 @@
       },
       "station": {
         "data": {
+          "nr_api_key": "OpenLDBWS token",
           "station": "TfL Station",
           "max": "Maximum number of departures to report",
           "platform": "Filter by platform",
