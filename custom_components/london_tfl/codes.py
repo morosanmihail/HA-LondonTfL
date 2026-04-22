@@ -1,42 +1,112 @@
 """
-This file focuses on functions used to transform station codes from one format to another.
-Namely:
-- ATCO, sometimes called NaPTAN ID (e.g. `910GSUTTON`): used by TfL
-- TIPLOC (e.g. `SUTTON`): used by RailData/Darwin
-- CRS, aka 3alpha (e.g. `SUO`): used by LDBWS
+Converts ATCO codes (NaPTAN IDs) used by TfL to CRS codes used by LDBWS.
 
-## Some details on ATCO
+ATCO codes for National Rail stations:
+  <3-digit area code><0 or G><TIPLOC>
+e.g. 910GKNGX → TIPLOC KNGX, CRS KGX
 
-Example: `910GSUTTON`
-
-It is formed by a 3 digit area code, followed by `0` or `G`[^1] and then an alpha-numeric code.
-In case where a location has multiple stops, it might have the same ATCO code with different numbers at the end.
-
-You can easily get the TIPLOC by removing the first 4 characters of the ATCO.
-
-Check https://mullinscr.github.io/naptan/atco_codes/ for more details.
-
-## Others
-
-There are other codes like NLC or STANOX but we don't need them for this particular use cases.
-
-Check http://www.railwaycodes.org.uk/crs/crs0.shtm or https://wiki.openraildata.com/index.php/Identifying_Locations for more details.
-
-[^1]: Many resources say it's only `0` but as TfL's API proves, that's not the case, and it is also confirmed [here](https://techforum.tfl.gov.uk/t/mapping-of-naptans-to-nlcs/3582/8).
-
-## Challenge
-
-TfL only provides the ATCO code, which means we can easily get the TIPLOC.
-Unfortunately, the easiest way to get access to the National Rail data is through LDBWS which uses CRS.
-
-There are other APIs from https://raildata.org.uk/ which can provide this transformation but they aren't very easy to consume (and require registration).
-Instead we can leverage PyRCS (https://pypi.org/project/pyrcs/) which wraps access to the http://www.railwaycodes.org.uk database.
-This allow transformation between TIPLOC and CRS, closing the gap.
+CRS codes are fetched from railwaycodes.org.uk (the same source pyrcs scrapes)
+but per-letter rather than bulk, which avoids pyrcs's aggregation bug.
+Each letter page is fetched once and cached for the process lifetime.
 """
 
-from pyrcs import LocationIdentifiers
+import html.parser
+import json
+import logging
 
-_locdata = None
+import aiohttp
+
+_LOGGER = logging.getLogger(__name__)
+
+_RWC_URL = "http://www.railwaycodes.org.uk/crs/crs{}.shtm"
+_TFL_STOPPOINT_URL = "https://api.tfl.gov.uk/StopPoint/{}"
+
+_letter_cache: dict[str, dict[str, str]] = {}
+_crs_cache: dict[str, str] = {}
+
+
+class _TableParser(html.parser.HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self._tables: list = []
+        self._table = None
+        self._row = None
+        self._cell = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "table":
+            self._table = []
+        elif tag == "tr" and self._table is not None:
+            self._row = []
+        elif tag in ("td", "th") and self._row is not None:
+            self._cell = []
+
+    def handle_endtag(self, tag):
+        if tag == "table":
+            if self._table is not None:
+                self._tables.append(self._table)
+            self._table = None
+        elif tag == "tr":
+            if self._row is not None and self._table is not None:
+                self._table.append(self._row)
+            self._row = None
+        elif tag in ("td", "th"):
+            if self._row is not None and self._cell is not None:
+                self._row.append("".join(self._cell).strip())
+            self._cell = None
+
+    def handle_data(self, data):
+        if self._cell is not None:
+            self._cell.append(data)
+
+    @property
+    def tables(self):
+        return self._tables
+
+
+def _parse_letter_page(html_content: str) -> dict[str, str]:
+    """Extract {TIPLOC: CRS} from a railwaycodes.org.uk letter page."""
+    parser = _TableParser()
+    parser.feed(html_content)
+
+    for table in parser.tables:
+        for i, row in enumerate(table):
+            headers = [c.upper().strip() for c in row]
+            if "CRS" in headers and "TIPLOC" in headers:
+                crs_idx = headers.index("CRS")
+                tiploc_idx = headers.index("TIPLOC")
+                result = {}
+                for data_row in table[i + 1:]:
+                    if len(data_row) > max(crs_idx, tiploc_idx):
+                        tiploc = data_row[tiploc_idx].strip()
+                        crs = data_row[crs_idx].strip()
+                        if tiploc and crs:
+                            result[tiploc] = crs
+                if result:
+                    return result
+    return {}
+
+
+async def _load_letter(letter: str) -> dict[str, str]:
+    url = _RWC_URL.format(letter.lower())
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                headers={"User-Agent": "HA-LondonTfL/1.0 (https://github.com/morosanmihail/HA-LondonTfL)"},
+                timeout=aiohttp.ClientTimeout(total=15),
+            ) as resp:
+                if resp.status != 200:
+                    _LOGGER.warning("railwaycodes.org.uk returned HTTP %s for letter %s", resp.status, letter)
+                    return {}
+                html_content = await resp.text(errors="replace")
+    except Exception as e:
+        _LOGGER.warning("Failed to fetch railwaycodes.org.uk for letter %s: %s", letter, e)
+        return {}
+
+    result = _parse_letter_page(html_content)
+    _LOGGER.debug("Loaded %d TIPLOC→CRS entries for letter %s", len(result), letter.upper())
+    return result
 
 
 def atco_to_tiploc(atco: str) -> str:
@@ -54,34 +124,46 @@ def atco_to_tiploc(atco: str) -> str:
     return atco[4:]
 
 
-def _tiploc_to_crs(tiploc: str) -> str:
-    """
-    Raises ValueError if no valid CRS found.
-    Returns the first match if multiple are found.
-    """
-    global _locdata
-    if _locdata is None:
-        lid = LocationIdentifiers()
-        try:
-            _locdata = lid.fetch_loc_id()
-        except Exception as e:
-            raise ValueError(f"pyrcs failed to load location ID data: {e}") from e
-    locid = _locdata["Location ID"]
-    res = locid.loc[
-        (locid["TIPLOC"] == tiploc) & locid["CRS"].notna() & (locid["CRS"] != ""),
-        "CRS",
-    ]
-    if len(res) == 0:
-        raise ValueError(f"No CRS code found for TIPLOC {tiploc!r}")
-    return res.iloc[0]
+async def _tfl_api_crs(atco: str) -> str | None:
+    from custom_components.london_tfl.network import request
 
-
-async def tiploc_to_crs(hass, tiploc: str) -> str:
-    return await hass.async_add_executor_job(_tiploc_to_crs, tiploc)
+    response = await request(_TFL_STOPPOINT_URL.format(atco))
+    if response is None:
+        return None
+    try:
+        data = json.loads(response)
+    except (json.JSONDecodeError, ValueError):
+        return None
+    for prop in data.get("additionalProperties", []):
+        if prop.get("key") == "CrsCode":
+            return prop["value"]
+    return None
 
 
 async def atco_to_crs(hass, atco: str) -> str:
     """
-    Convenience function, calls `tiploc_to_crs(atco_to_tiploc(atco))`.
+    Returns the CRS code for a given ATCO code.
+    Raises ValueError if no CRS code can be found.
     """
-    return await tiploc_to_crs(hass, atco_to_tiploc(atco))
+    if atco in _crs_cache:
+        return _crs_cache[atco]
+
+    tiploc = atco_to_tiploc(atco)
+    letter = tiploc[0].upper()
+
+    if letter not in _letter_cache:
+        _letter_cache[letter] = await _load_letter(letter)
+
+    if tiploc in _letter_cache[letter]:
+        crs = _letter_cache[letter][tiploc]
+        _crs_cache[atco] = crs
+        _LOGGER.debug("Resolved %s → %s → %s via railwaycodes.org.uk", atco, tiploc, crs)
+        return crs
+
+    crs = await _tfl_api_crs(atco)
+    if crs:
+        _crs_cache[atco] = crs
+        _LOGGER.debug("Resolved %s → %s via TfL API fallback", atco, crs)
+        return crs
+
+    raise ValueError(f"No CRS code found for ATCO {atco!r} (TIPLOC {tiploc!r})")
