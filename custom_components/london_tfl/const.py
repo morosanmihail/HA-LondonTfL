@@ -42,6 +42,35 @@ TFL_STATIONS_URL = "https://api.tfl.gov.uk/line/{0}/stoppoints"
 TFL_TIMETABLE_URL = "https://api.tfl.gov.uk/Line/{0}/Timetable/{1}"
 USE_LDBWS_URL = "use-ldbws-purposefully-not-a-url"
 
+# Maps TfL national-rail line IDs to LDBWS two-letter TOC codes.
+# Needed because TfL and LDBWS use incompatible identifiers for the same operators.
+TFL_NR_LINE_TO_TOC = {
+    "southeastern": "SE",
+    "southern": "SN",
+    "gatwick-express": "GX",
+    "great-western-railway": "GW",
+    "c2c": "CC",
+    "great-northern": "GN",
+    "greater-anglia": "LE",
+    "heathrow-express": "HX",
+    "south-western-railway": "SW",
+    "east-midlands-railway": "EM",
+    "chiltern-railways": "CH",
+    "crosscountry": "XC",
+    "transpennine-express": "TP",
+    "avanti-west-coast": "VT",
+    "london-north-eastern-railway": "GR",
+    "west-midlands-trains": "LM",
+    "northern-trains": "NT",
+    "hull-trains": "HT",
+    "grand-central": "GC",
+    "caledonian-sleeper": "CS",
+    "transport-for-wales": "AW",
+    "scotrail": "SR",
+    "merseyrail": "ME",
+    "island-line": "IL",
+}
+
 SHORTEN_STATION_NAMES = ["Underground Station", "DLR Station", "Rail Station"]
 
 

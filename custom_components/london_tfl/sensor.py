@@ -97,8 +97,9 @@ async def async_setup_entry(
                 tfl_data=shared_data,
             )
             sensors.append(LondonTfLSensor(departure_mode="realtime", **common_kwargs))
-            sensors.append(LondonTfLSensor(departure_mode="scheduled", **common_kwargs))
-            sensors.append(LondonTfLSensor(departure_mode="all", **common_kwargs))
+            if stop.get(CONF_METHOD) != "national-rail":
+                sensors.append(LondonTfLSensor(departure_mode="scheduled", **common_kwargs))
+                sensors.append(LondonTfLSensor(departure_mode="all", **common_kwargs))
     # Remove entities from the registry that belong to this config entry but
     # are no longer in the stop list (e.g. after the user removed a stop).
     registry = er.async_get(hass)
@@ -144,8 +145,9 @@ async def async_setup_platform(
                 tfl_data=shared_data,
             )
             sensors.append(LondonTfLSensor(departure_mode="realtime", **common_kwargs))
-            sensors.append(LondonTfLSensor(departure_mode="scheduled", **common_kwargs))
-            sensors.append(LondonTfLSensor(departure_mode="all", **common_kwargs))
+            if stop[CONF_METHOD] != "national-rail":
+                sensors.append(LondonTfLSensor(departure_mode="scheduled", **common_kwargs))
+                sensors.append(LondonTfLSensor(departure_mode="all", **common_kwargs))
     async_add_entities(sensors, update_before_add=True)
 
 
@@ -170,7 +172,7 @@ class LondonTfLSensor(SensorEntity):
         self._platformname = name
         mode_suffix = "" if departure_mode == "realtime" else ("_" + departure_mode)
         self._name = name + "_" + line + "_" + station + mode_suffix
-        self.entity_id = "sensor." + self._name.lower().replace(" ", "_")
+        self.entity_id = "sensor." + self._name.lower().replace(" ", "_").replace("-", "_")
         self.method = method
         self.line = line
         self.station = station

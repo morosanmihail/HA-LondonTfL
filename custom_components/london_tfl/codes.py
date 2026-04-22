@@ -56,7 +56,7 @@ def atco_to_tiploc(atco: str) -> str:
 
 def _tiploc_to_crs(tiploc: str) -> str:
     """
-    Raises ValueError if None are found.
+    Raises ValueError if no valid CRS found.
     Returns the first match if multiple are found.
     """
     global _locdata
@@ -64,10 +64,13 @@ def _tiploc_to_crs(tiploc: str) -> str:
         lid = LocationIdentifiers()
         _locdata = lid.fetch_loc_id()
     locid = _locdata["Location ID"]
-    res = locid.loc[locid["TIPLOC"] == tiploc, "CRS"]
-    if len(res) > 1:
-        return res.iloc[0]
-    return res.item()
+    res = locid.loc[
+        (locid["TIPLOC"] == tiploc) & locid["CRS"].notna() & (locid["CRS"] != ""),
+        "CRS",
+    ]
+    if len(res) == 0:
+        raise ValueError(f"No CRS code found for TIPLOC {tiploc!r}")
+    return res.iloc[0]
 
 
 async def tiploc_to_crs(hass, tiploc: str) -> str:

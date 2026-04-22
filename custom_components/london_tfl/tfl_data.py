@@ -13,6 +13,7 @@ from custom_components.london_tfl.const import (
     TFL_TRANSPORT_TYPES,
     TFL_COLOUR_CODES,
     TFL_TIMETABLE_URL,
+    TFL_NR_LINE_TO_TOC,
     USE_LDBWS_URL,
 )
 from custom_components.london_tfl.network import LDBWS, LDBWSError, request
@@ -99,8 +100,24 @@ class TfLData:
         except ValueError:
             _LOGGER.exception("Invalid station code for %s", self.station)
             return "Cannot fetch station code"
+        except Exception:
+            _LOGGER.exception("Unexpected error fetching National Rail departures for %s", self.station)
+            return "National Rail fetch error"
 
-        return [entry.convert() for entry in result if entry.operator_id == self.line]
+        toc = TFL_NR_LINE_TO_TOC.get(self.line)
+        if toc:
+            filtered = [e.convert() for e in result if e.operator_code == toc]
+        else:
+            filtered = [e.convert() for e in result if e.operator_id == self.line]
+
+        if not filtered and result:
+            _LOGGER.warning(
+                "No departures matched operator filter for line %r (TOC=%r); returning all %d trains",
+                self.line, toc, len(result),
+            )
+            filtered = [e.convert() for e in result]
+
+        return filtered
 
     async def fetch_timetable(self, hass, force: bool = False) -> bool:
         """Fetch timetable data. Returns True if timetable is available."""

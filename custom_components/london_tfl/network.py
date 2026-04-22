@@ -39,6 +39,7 @@ async def request(url):
 class LDBWSDeparture:
     location_name: str
     platform: str
+    operator_code: str
     operator_id: str
     destination_name: str
     scheduled_departure_time: str
@@ -119,7 +120,7 @@ class LDBWS:
                     location_name=res.locationName,
                     platform=service.platform if service.platform is not None else "?",
                     destination_name=service.destination.location[0].locationName,
-                    # FIXME: would be better if we could use `operatorCode` but Tfl doesn't expose it on their side
+                    operator_code=(service.operatorCode or "").upper(),
                     operator_id=service.operator.lower().replace(" ", "-"),
                     scheduled_departure_time=service.std,
                     # Note: etd is either `On time` or contains the estimated departure time
