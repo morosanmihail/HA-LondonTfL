@@ -62,7 +62,10 @@ def _tiploc_to_crs(tiploc: str) -> str:
     global _locdata
     if _locdata is None:
         lid = LocationIdentifiers()
-        _locdata = lid.fetch_loc_id()
+        try:
+            _locdata = lid.fetch_loc_id()
+        except Exception as e:
+            raise ValueError(f"pyrcs failed to load location ID data: {e}") from e
     locid = _locdata["Location ID"]
     res = locid.loc[
         (locid["TIPLOC"] == tiploc) & locid["CRS"].notna() & (locid["CRS"] != ""),

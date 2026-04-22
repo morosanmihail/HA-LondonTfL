@@ -8,7 +8,7 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/morosanmihail/HA-LondonTfL/issues",
   "requirements": [
-    "pyhelpers>=2.2.0,<=2.3.4",
+    "pyhelpers==2.3.4",
     "pyrcs==1.0.2",
     "zeep==4.3.1"
   ],
