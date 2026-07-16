@@ -33,6 +33,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def time_to_station(entry, arrival, with_destination=True, style="{0}m {1}s"):
+    if not arrival:
+        return ""
     now = datetime.now(UTC)
     arrival = parser.parse(arrival).replace(tzinfo=UTC)
     next_departure_time = (arrival - now).total_seconds()

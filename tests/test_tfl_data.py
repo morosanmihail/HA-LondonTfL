@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from custom_components.london_tfl.tfl_data import TfLData
+from custom_components.london_tfl.tfl_data import TfLData, time_to_station
 
 FIXTURES = Path(__file__).parent.parent / "custom_components" / "london_tfl" / "test"
 
@@ -39,6 +39,18 @@ def bus_data(raw_bus: list) -> TfLData:
     tfl.populate(raw_bus, filter_platform="241")
     tfl.sort_data(5)
     return tfl
+
+
+class TestTimeToStation:
+    def test_empty_arrival_returns_empty_string(self) -> None:
+        assert time_to_station({}, "") == ""
+
+    def test_none_arrival_returns_empty_string(self) -> None:
+        assert time_to_station({}, None) == ""
+
+    def test_valid_arrival_still_formats(self) -> None:
+        future = (datetime.now(UTC) + timedelta(minutes=5)).isoformat()
+        assert re.match(r"^\d+m \d+s$", time_to_station({}, future, False))
 
 
 class TestTfLData:
