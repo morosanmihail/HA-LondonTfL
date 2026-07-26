@@ -271,8 +271,11 @@ class TfLData:
 
     def get_state(self):
         if len(self._api_json) > 0:
+            expected = self._get_expected_arrival(self._api_json[0])
+            if not expected:
+                return "None"
             return (
-                parser.parse(self._get_expected_arrival(self._api_json[0]))
+                parser.parse(expected)
                 .astimezone(ZoneInfo("Europe/London"))
                 .strftime("%H:%M")
             )
@@ -293,7 +296,19 @@ class TfLData:
 
     def _get_expected_arrival(self, item) -> str:
         method = self._method_property(TFL_TRANSPORT_TYPES)
-        return item.get(TFL_TRANSPORT_TYPES[method]["expected_arrival"], "")
+        arrival = item.get(TFL_TRANSPORT_TYPES[method]["expected_arrival"], "")
+        if arrival:
+            return arrival
+
+        departure = self._get_expected_departure(item)
+        if departure:
+            return departure
+
+        _LOGGER.warning(
+            "No expected arrival or departure time available for station %s (line %s)",
+            self.station, self.line,
+        )
+        return ""
 
     def _get_platform_name(self, item) -> str:
         method = self._method_property(TFL_TRANSPORT_TYPES)
@@ -428,7 +443,7 @@ class TfLData:
 
     def get_state_from_departures(self, departures: list) -> str:
         """Return HH:MM state string from the first entry in a departures list."""
-        if departures:
+        if departures and departures[0]["expected"]:
             return (
                 parser.parse(departures[0]["expected"])
                 .astimezone(ZoneInfo("Europe/London"))
