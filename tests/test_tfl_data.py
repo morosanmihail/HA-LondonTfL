@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from datetime import datetime, UTC, timedelta
 from pathlib import Path
@@ -446,3 +447,46 @@ class TestDeparturesModeFilter:
     def test_get_state_from_departures_empty_returns_none_string(self) -> None:
         tfl = TfLData(method="bus", line="241", station="490000000X")
         assert tfl.get_state_from_departures([]) == "None"
+
+
+class TestExpectedArrivalFallback:
+    """national-rail uses distinct keys for arrival/departure, so missing
+    arrival falls back to departure rather than blowing up downstream parsing."""
+
+    def _departure_time(self) -> str:
+        return (datetime.now(UTC) + timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def test_falls_back_to_departure_when_arrival_missing(self) -> None:
+        tfl = TfLData(method="national-rail", line="se", station="910GVXHALL")
+        departure = self._departure_time()
+        item = {"scheduledTimeOfDeparture": departure}
+        assert tfl._get_expected_arrival(item) == departure
+
+    def test_falls_back_to_departure_when_arrival_empty_string(self) -> None:
+        tfl = TfLData(method="national-rail", line="se", station="910GVXHALL")
+        departure = self._departure_time()
+        item = {"scheduledTimeOfArrival": "", "scheduledTimeOfDeparture": departure}
+        assert tfl._get_expected_arrival(item) == departure
+
+    def test_uses_arrival_when_present(self) -> None:
+        tfl = TfLData(method="national-rail", line="se", station="910GVXHALL")
+        arrival = self._departure_time()
+        item = {
+            "scheduledTimeOfArrival": arrival,
+            "scheduledTimeOfDeparture": self._departure_time(),
+        }
+        assert tfl._get_expected_arrival(item) == arrival
+
+    def test_logs_warning_and_returns_empty_when_both_missing(self, caplog) -> None:
+        tfl = TfLData(method="national-rail", line="se", station="910GVXHALL")
+        with caplog.at_level(logging.WARNING):
+            result = tfl._get_expected_arrival({})
+        assert result == ""
+        assert any("910GVXHALL" in record.message for record in caplog.records)
+
+    def test_does_not_raise_when_both_missing(self) -> None:
+        tfl = TfLData(method="national-rail", line="se", station="910GVXHALL")
+        tfl.populate([{}], filter_platform="")
+        tfl.sort_data(5)
+        # Should not raise, even though get_state() parses the expected arrival.
+        assert tfl.get_state() == "None" or isinstance(tfl.get_state(), str)
