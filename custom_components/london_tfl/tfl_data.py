@@ -72,7 +72,12 @@ class TfLData:
             if not result:
                 _LOGGER.warning("There was no reply from TfL servers for %s", url)
                 return "Cannot reach TfL"
-            return json.loads(result)
+            data = json.loads(result)
+            if not isinstance(data, list):
+                msg = data.get("message", "Unknown TfL API error") if isinstance(data, dict) else "Unexpected TfL response"
+                _LOGGER.warning("TfL API error for %s: %s", url, msg)
+                return "Cannot reach TfL"
+            return data
         except json.JSONDecodeError:
             _LOGGER.exception("Failed to interpret received JSON for %s", url)
             return "Cannot interpret JSON from TfL"

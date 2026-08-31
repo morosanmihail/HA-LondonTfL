@@ -28,6 +28,36 @@ from .network import request
 _LOGGER = logging.getLogger(__name__)
 
 
+async def _fetch_stations(method: str, line_csv: str) -> dict[str, str]:
+    """Fetch and merge stoppoints for one or more comma-separated line ids.
+
+    The TfL StopPoints endpoint does not accept a comma-separated line list
+    (unlike the arrivals endpoint), so each line id is queried separately
+    and the results are merged.
+    """
+    stations: dict[str, str] = {}
+    for line_id in line_csv.split(","):
+        try:
+            result = await request(TFL_STATIONS_URL.format(line_id))
+            if not result:
+                _LOGGER.warning(
+                    "No reply from TfL when fetching stations for line %s", line_id
+                )
+                continue
+            data = json.loads(result)
+            if method != "bus":
+                stations.update(
+                    {item["stationNaptan"]: item["commonName"] for item in data}
+                )
+            else:
+                stations.update({item["id"]: item["commonName"] for item in data})
+        except Exception:
+            _LOGGER.warning(
+                "Failed to fetch stations for line %s", line_id, exc_info=True
+            )
+    return stations
+
+
 @config_entries.HANDLERS.register(DOMAIN)
 class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """London TfL config flow."""
@@ -66,7 +96,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_lines(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
         if user_input is not None:
-            self.data["lastLine"] = user_input[CONF_LINE]
+            self.data["lastLine"] = ",".join(user_input[CONF_LINE])
             return await self.async_step_station()
 
         lines = {}
@@ -83,11 +113,19 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not lines:
             return self.async_abort(reason="cannot_connect")
 
+        line_options = [
+            selector.SelectOptionDict(value=line_id, label=name)
+            for line_id, name in lines.items()
+        ]
         return self.async_show_form(
             step_id="lines",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_LINE): vol.In(lines),
+                    vol.Required(CONF_LINE): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=line_options, multiple=True
+                        )
+                    ),
                 }
             ),
             errors=errors,
@@ -114,21 +152,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title=user_input[CONF_STATION], data=self.data
             )
 
-        stations_url = TFL_STATIONS_URL.format(self.data["lastLine"])
-
-        stations = {}
-        try:
-            result = await request(stations_url)
-            if not result:
-                _LOGGER.warning("There was no reply from TfL servers.")
-            else:
-                data = json.loads(result)
-                if self.data["lastMethod"] != "bus":
-                    stations = {item["stationNaptan"]: item["commonName"] for item in data}
-                else:
-                    stations = {item["id"]: item["commonName"] for item in data}
-        except Exception:
-            _LOGGER.warning("Failed to fetch stations", exc_info=True)
+        stations = await _fetch_stations(self.data["lastMethod"], self.data["lastLine"])
 
         if not stations:
             return self.async_abort(reason="cannot_connect")
@@ -137,7 +161,7 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if (
             self.data["lastMethod"] == "national-rail"
-            and self.data["lastLine"] != "thameslink"
+            and "thameslink" not in self.data["lastLine"].split(",")
         ):
             # if a user already supplied a token in this specific flow, retrieve it
             kwargs = {}
@@ -222,7 +246,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Step 2 of adding a stop: pick the line."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            self._last_line = user_input[CONF_LINE]
+            self._last_line = ",".join(user_input[CONF_LINE])
             return await self.async_step_add_station()
 
         lines = {}
@@ -243,9 +267,21 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if not lines:
             return self.async_abort(reason="cannot_connect")
 
+        line_options = [
+            selector.SelectOptionDict(value=line_id, label=name)
+            for line_id, name in lines.items()
+        ]
         return self.async_show_form(
             step_id="add_line",
-            data_schema=vol.Schema({vol.Required(CONF_LINE): vol.In(lines)}),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_LINE): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=line_options, multiple=True
+                        )
+                    ),
+                }
+            ),
             errors=errors,
         )
 
@@ -270,34 +306,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             return self._save()
 
         errors: dict[str, str] = {}
-        self._current_stations = {}
-        try:
-            result = await request(TFL_STATIONS_URL.format(self._last_line))
-            if not result:
-                _LOGGER.warning(
-                    "No reply from TfL when fetching stations for line %s",
-                    self._last_line,
-                )
-            else:
-                data = json.loads(result)
-                if self._last_method != "bus":
-                    self._current_stations = {
-                        item["stationNaptan"]: item["commonName"] for item in data
-                    }
-                else:
-                    self._current_stations = {
-                        item["id"]: item["commonName"] for item in data
-                    }
-        except Exception:
-            _LOGGER.warning(
-                "Failed to fetch stations for line %s", self._last_line, exc_info=True
-            )
+        self._current_stations = await _fetch_stations(
+            self._last_method, self._last_line
+        )
 
         if not self._current_stations:
             return self.async_abort(reason="cannot_connect")
 
         extra_fields: dict = {}
-        if self._last_method == "national-rail" and self._last_line != "thameslink":
+        if (
+            self._last_method == "national-rail"
+            and "thameslink" not in self._last_line.split(",")
+        ):
             # Reuse a token already entered for another NR stop in this session.
             kwargs: dict = {}
             for stop in self._stops:

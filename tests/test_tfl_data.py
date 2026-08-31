@@ -179,10 +179,15 @@ class TestTfLDataUrl:
         url = tfl.url(station="940GZZLUSTD")
         assert "api.tfl.gov.uk/line/jubilee/arrivals/940GZZLUSTD" in url
 
-    def test_bus_uses_bus_arrivals_url(self) -> None:
+    def test_bus_uses_line_arrivals_url(self) -> None:
         tfl = TfLData(method="bus", line="241", station="490012345X")
         url = tfl.url(station="490012345X")
-        assert "api.tfl.gov.uk/StopPoint/490012345X/arrivals" in url
+        assert "api.tfl.gov.uk/line/241/arrivals/490012345X" in url
+
+    def test_bus_multi_line_uses_line_arrivals_url(self) -> None:
+        tfl = TfLData(method="bus", line="15,115,135", station="490009160W")
+        url = tfl.url(station="490009160W")
+        assert "api.tfl.gov.uk/line/15,115,135/arrivals/490009160W" in url
 
     def test_national_rail_uses_ldbws_sentinel(self) -> None:
         from custom_components.london_tfl.const import USE_LDBWS_URL
