@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import Any
+from typing import Any, NamedTuple
 
 from homeassistant import config_entries
 from homeassistant.core import callback
@@ -28,15 +28,60 @@ from .network import request
 _LOGGER = logging.getLogger(__name__)
 
 
-async def _fetch_stations(method: str, line_csv: str) -> dict[str, str]:
+class StationOption(NamedTuple):
+    """A station-picker entry.
+
+    label: rich text for the dropdown (name + indicator + towards + line coverage).
+    name: plain station name, no suffixes.
+    display_name: name + "(towards ...)" when TfL provides a direction — this is
+        what gets persisted as station_display_name / used for the entry title,
+        since direction is a stable physical property of the stop (unlike line
+        coverage, which depends on what was selected in this particular flow).
+    """
+
+    label: str
+    name: str
+    display_name: str
+
+
+def _direction_text(item: dict) -> str:
+    """Extract a human direction hint ("towards X" or a compass point) if present.
+
+    Only populated by TfL for stop-level (e.g. bus) stoppoints, not for
+    station-level ones (e.g. tube), so this is often "".
+    """
+    towards = ""
+    compass = ""
+    for prop in item.get("additionalProperties", []):
+        if prop.get("category") != "Direction":
+            continue
+        if prop.get("key") == "Towards":
+            towards = prop.get("value", "")
+        elif prop.get("key") == "CompassPoint":
+            compass = prop.get("value", "")
+    return towards or compass
+
+
+async def _fetch_stations(method: str, line_csv: str) -> dict[str, StationOption]:
     """Fetch and merge stoppoints for one or more comma-separated line ids.
 
     The TfL StopPoints endpoint does not accept a comma-separated line list
     (unlike the arrivals endpoint), so each line id is queried separately
-    and the results are merged.
+    and the results are merged (union, not intersection) so a station only
+    served by some of the selected lines is still selectable.
+
+    When multiple lines are selected, stations served by more of them are
+    sorted first and their dropdown label notes how many ("2/3 lines"),
+    since those are the stations most likely to be what the user actually
+    wants (all selected lines returning arrivals from a single stop). The
+    label also includes the stop indicator and direction ("towards ...")
+    when TfL provides them (bus stops; not present for station-level modes
+    like tube/DLR).
     """
-    stations: dict[str, str] = {}
-    for line_id in line_csv.split(","):
+    line_ids = line_csv.split(",")
+    items: dict[str, dict] = {}
+    counts: dict[str, int] = {}
+    for line_id in line_ids:
         try:
             result = await request(TFL_STATIONS_URL.format(line_id))
             if not result:
@@ -45,16 +90,37 @@ async def _fetch_stations(method: str, line_csv: str) -> dict[str, str]:
                 )
                 continue
             data = json.loads(result)
-            if method != "bus":
-                stations.update(
-                    {item["stationNaptan"]: item["commonName"] for item in data}
-                )
-            else:
-                stations.update({item["id"]: item["commonName"] for item in data})
+            id_key = "id" if method == "bus" else "stationNaptan"
+            for item in data:
+                station_id = item[id_key]
+                items[station_id] = item
+                counts[station_id] = counts.get(station_id, 0) + 1
         except Exception:
             _LOGGER.warning(
                 "Failed to fetch stations for line %s", line_id, exc_info=True
             )
+
+    total_lines = len(line_ids)
+    ordered_ids = sorted(items, key=lambda sid: counts[sid], reverse=True)
+
+    stations: dict[str, StationOption] = {}
+    for station_id in ordered_ids:
+        item = items[station_id]
+        name = item["commonName"]
+
+        direction = _direction_text(item)
+        display_name = f"{name} (towards {direction})" if direction else name
+
+        label = name
+        if item.get("indicator"):
+            label += f" ({item['indicator']})"
+        if direction:
+            label += f" — towards {direction}"
+        if total_lines > 1:
+            label += f" [{counts[station_id]}/{total_lines} lines]"
+
+        stations[station_id] = StationOption(label=label, name=name, display_name=display_name)
+
     return stations
 
 
@@ -69,6 +135,10 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             "lastLine": "",
             "lastMethod": "",
         }
+        # Cached station lookup from the last time the station form was shown,
+        # used to resolve a friendly name on submit (kept off self.data since
+        # that dict is persisted verbatim as the config entry's data).
+        self._current_stations: dict[str, StationOption] = {}
 
     @staticmethod
     @callback
@@ -134,25 +204,34 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_station(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
         if user_input is not None:
+            station_id = user_input[CONF_STATION]
+            station_option = self._current_stations.get(station_id)
             self.data[CONF_STOPS].append(
                 {
                     CONF_LINE: self.data["lastLine"],
                     CONF_METHOD: self.data["lastMethod"],
                     CONF_NR_API_KEY: user_input.get(CONF_NR_API_KEY, None),
-                    CONF_STATION: user_input[CONF_STATION],
+                    CONF_STATION: station_id,
                     CONF_MAX: user_input[CONF_MAX],
                     CONF_PLATFORM: user_input[CONF_PLATFORM],
                     CONF_SHORTEN_STATION_NAMES: user_input[CONF_SHORTEN_STATION_NAMES],
+                    # Store display name so it survives without a fresh API call
+                    # (used for both the entry title below and the options-flow
+                    # edit/remove menu's stop labels).
+                    "station_display_name": station_option.display_name if station_option else station_id,
                 }
             )
             if user_input.get("add_another", False):
                 return await self.async_step_user()
 
-            return self.async_create_entry(
-                title=user_input[CONF_STATION], data=self.data
+            title = ", ".join(
+                stop.get("station_display_name") or stop[CONF_STATION]
+                for stop in self.data[CONF_STOPS]
             )
+            return self.async_create_entry(title=title, data=self.data)
 
         stations = await _fetch_stations(self.data["lastMethod"], self.data["lastLine"])
+        self._current_stations = stations
 
         if not stations:
             return self.async_abort(reason="cannot_connect")
@@ -177,7 +256,9 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     **extra_fields,
-                    vol.Required(CONF_STATION): vol.In(stations),
+                    vol.Required(CONF_STATION): vol.In(
+                        {sid: opt.label for sid, opt in stations.items()}
+                    ),
                     vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
                     vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
                     vol.Optional(CONF_PLATFORM, default=""): cv.string,
@@ -298,8 +379,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_PLATFORM: user_input[CONF_PLATFORM],
                     CONF_SHORTEN_STATION_NAMES: user_input[CONF_SHORTEN_STATION_NAMES],
                     # Store display name so the edit/remove UI shows it without an API call.
-                    "station_display_name": self._current_stations.get(
-                        user_input[CONF_STATION], ""
+                    "station_display_name": (
+                        self._current_stations[user_input[CONF_STATION]].display_name
+                        if user_input[CONF_STATION] in self._current_stations
+                        else ""
                     ),
                 }
             )
@@ -331,7 +414,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=vol.Schema(
                 {
                     **extra_fields,
-                    vol.Required(CONF_STATION): vol.In(self._current_stations),
+                    vol.Required(CONF_STATION): vol.In(
+                        {sid: opt.label for sid, opt in self._current_stations.items()}
+                    ),
                     vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
                     vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
                     vol.Optional(CONF_PLATFORM, default=""): cv.string,
