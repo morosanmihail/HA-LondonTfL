@@ -1,0 +1,76 @@
+[
+  {
+    "id": "490000003R",
+    "commonName": "Aldgate Station",
+    "indicator": "Stop R",
+    "stopLetter": "R",
+    "additionalProperties": [
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "CompassPoint",
+        "sourceSystemKey": "Naptan490",
+        "value": "W"
+      },
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "Towards",
+        "sourceSystemKey": "CountDown",
+        "value": "Bank, London Bridge Or Tower Bridge"
+      }
+    ]
+  },
+  {
+    "id": "490000004W",
+    "commonName": "Aldgate East Station",
+    "indicator": "Stop J",
+    "stopLetter": "J",
+    "additionalProperties": [
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "CompassPoint",
+        "sourceSystemKey": "Naptan490",
+        "value": "W"
+      },
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "Towards",
+        "sourceSystemKey": "CountDown",
+        "value": "Bank, Tower Hill Or Liverpool Street"
+      }
+    ]
+  },
+  {
+    "id": "490000039D",
+    "commonName": "Canning Town Bus Station",
+    "indicator": "Stop D",
+    "stopLetter": "D",
+    "additionalProperties": [
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "CompassPoint",
+        "sourceSystemKey": "Naptan490",
+        "value": "S"
+      }
+    ]
+  },
+  {
+    "id": "490000039F",
+    "commonName": "Canning Town Bus Station",
+    "indicator": "Stop F",
+    "stopLetter": "F",
+    "additionalProperties": [
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "CompassPoint",
+        "sourceSystemKey": "Naptan490",
+        "value": "N"
+      }
+    ]
+  }
+]

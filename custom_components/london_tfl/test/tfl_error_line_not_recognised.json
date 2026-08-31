@@ -1,0 +1,1 @@
+{"$type":"Tfl.Api.Presentation.Entities.ApiError, Tfl.Api.Presentation.Entities","timestampUtc":"2026-08-31T10:00:33.3619658Z","exceptionType":"EntityNotFoundException","httpStatusCode":404,"httpStatus":"NotFound","relativeUri":"/Line/D3,BOGUS123/arrivals/490009160W","message":"The following line ids are not recognised: BOGUS123"}

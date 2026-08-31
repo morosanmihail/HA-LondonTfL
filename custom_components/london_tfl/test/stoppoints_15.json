@@ -1,0 +1,90 @@
+[
+  {
+    "id": "490000003R",
+    "commonName": "Aldgate Station",
+    "indicator": "Stop R",
+    "stopLetter": "R",
+    "additionalProperties": [
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "CompassPoint",
+        "sourceSystemKey": "Naptan490",
+        "value": "W"
+      },
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "Towards",
+        "sourceSystemKey": "CountDown",
+        "value": "Bank, London Bridge Or Tower Bridge"
+      }
+    ]
+  },
+  {
+    "id": "490000004W",
+    "commonName": "Aldgate East Station",
+    "indicator": "Stop J",
+    "stopLetter": "J",
+    "additionalProperties": [
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "CompassPoint",
+        "sourceSystemKey": "Naptan490",
+        "value": "W"
+      },
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "Towards",
+        "sourceSystemKey": "CountDown",
+        "value": "Bank, Tower Hill Or Liverpool Street"
+      }
+    ]
+  },
+  {
+    "id": "490000040A",
+    "commonName": "Cannon St Stn   / Bank Station",
+    "indicator": "Stop MA",
+    "stopLetter": "MA",
+    "additionalProperties": [
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "CompassPoint",
+        "sourceSystemKey": "Naptan490",
+        "value": "W"
+      },
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "Towards",
+        "sourceSystemKey": "CountDown",
+        "value": "Aldwych Or Holborn"
+      }
+    ]
+  },
+  {
+    "id": "490000040B",
+    "commonName": "Cannon Street Station",
+    "indicator": "Stop MB",
+    "stopLetter": "MB",
+    "additionalProperties": [
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "CompassPoint",
+        "sourceSystemKey": "Naptan490",
+        "value": "E"
+      },
+      {
+        "$type": "Tfl.Api.Presentation.Entities.AdditionalProperties, Tfl.Api.Presentation.Entities",
+        "category": "Direction",
+        "key": "Towards",
+        "sourceSystemKey": "CountDown",
+        "value": "Aldgate Or London Bridge"
+      }
+    ]
+  }
+]

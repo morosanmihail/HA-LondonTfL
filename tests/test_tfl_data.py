@@ -26,6 +26,13 @@ def raw_timetable() -> dict:
 
 
 @pytest.fixture
+def raw_tfl_error() -> str:
+    # Live TfL response for a line/arrivals request with an unrecognised line id
+    # (e.g. a withdrawn/renumbered bus route) — valid JSON, but a dict, not a list.
+    return (FIXTURES / "tfl_error_line_not_recognised.json").read_text()
+
+
+@pytest.fixture
 def underground_data(raw_underground: list) -> TfLData:
     tfl = TfLData(method="tube", line="jubilee", station="Stratford Underground Station")
     tfl.populate(raw_underground, filter_platform="")
@@ -399,6 +406,65 @@ class TestTimetableMerging:
         departures = tfl.get_departures()
         matched = [d for d in departures if d["prediction_type"] == "scheduled+realtime"]
         assert len(matched) == 1
+
+
+class TestFetch:
+    """fetch() must never hand populate() something that isn't a list — a TfL
+    error body (e.g. an unrecognised/withdrawn line id) is valid JSON but a
+    dict, and used to reach populate()/filter_by_platform() and blow up with
+    an AttributeError instead of surfacing as a normal "Cannot reach TfL"
+    sensor-unavailable state.
+    """
+
+    async def test_returns_list_on_valid_response(self, monkeypatch, raw_bus: list) -> None:
+        async def fake_request(url):
+            return json.dumps(raw_bus)
+
+        monkeypatch.setattr("custom_components.london_tfl.tfl_data.request", fake_request)
+        tfl = TfLData(method="bus", line="241", station="490004222E")
+        result = await tfl.fetch(None)
+        assert result == raw_bus
+
+    async def test_returns_error_string_on_tfl_error_body(self, monkeypatch, raw_tfl_error: str) -> None:
+        async def fake_request(url):
+            return raw_tfl_error
+
+        monkeypatch.setattr("custom_components.london_tfl.tfl_data.request", fake_request)
+        tfl = TfLData(method="bus", line="d3,bogus123", station="490009160W")
+        result = await tfl.fetch(None)
+        assert result == "Cannot reach TfL"
+
+    async def test_error_body_does_not_crash_populate(self, monkeypatch, raw_tfl_error: str) -> None:
+        """Regression guard: even if fetch() ever regresses to passing the raw
+        dict through, populate()/filter_by_platform() must not be handed it —
+        this pins the isinstance(result, str) short-circuit in async_update()
+        (sensor.py) that fetch() returning a str is relied on for.
+        """
+        async def fake_request(url):
+            return raw_tfl_error
+
+        monkeypatch.setattr("custom_components.london_tfl.tfl_data.request", fake_request)
+        tfl = TfLData(method="bus", line="d3,bogus123", station="490009160W")
+        result = await tfl.fetch(None)
+        assert isinstance(result, str)
+
+    async def test_returns_cannot_reach_tfl_on_empty_reply(self, monkeypatch) -> None:
+        async def fake_request(url):
+            return None
+
+        monkeypatch.setattr("custom_components.london_tfl.tfl_data.request", fake_request)
+        tfl = TfLData(method="bus", line="241", station="490004222E")
+        result = await tfl.fetch(None)
+        assert result == "Cannot reach TfL"
+
+    async def test_returns_error_string_on_invalid_json(self, monkeypatch) -> None:
+        async def fake_request(url):
+            return "not json"
+
+        monkeypatch.setattr("custom_components.london_tfl.tfl_data.request", fake_request)
+        tfl = TfLData(method="bus", line="241", station="490004222E")
+        result = await tfl.fetch(None)
+        assert isinstance(result, str)
 
 
 class TestDeparturesModeFilter:
