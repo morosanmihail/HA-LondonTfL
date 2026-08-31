@@ -37,7 +37,6 @@ TFL_ARRIVALS_URL = "https://api.tfl.gov.uk/line/{0}/arrivals/{1}?test={2}"
 TFL_ALT_ARRIVALS_URL = (
     "https://api.tfl.gov.uk/StopPoint/{1}/arrivaldepartures/?lineIds={0}&test={2}"
 )
-TFL_BUS_ARRIVALS_URL = "https://api.tfl.gov.uk/StopPoint/{1}/arrivals/?test={2}"
 TFL_STATIONS_URL = "https://api.tfl.gov.uk/line/{0}/stoppoints"
 TFL_TIMETABLE_URL = "https://api.tfl.gov.uk/Line/{0}/Timetable/{1}"
 USE_LDBWS_URL = "use-ldbws-purposefully-not-a-url"
@@ -90,7 +89,7 @@ TFL_TRANSPORT_TYPES = {
         "transport_type": "Buses",
         "icon": DEFAULT_ICONS["bus"],
         "use_destination_name": True,
-        "url": TFL_BUS_ARRIVALS_URL,
+        "url": TFL_ARRIVALS_URL,
         "expected_departure": "expectedArrival",
         "expected_arrival": "expectedArrival",
         "platform_name": "lineName",

@@ -15,6 +15,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+from homeassistant.util import slugify
 
 from .const import (
     CONF_STOPS,
@@ -172,7 +173,7 @@ class LondonTfLSensor(SensorEntity):
         self._platformname = name
         mode_suffix = "" if departure_mode == "realtime" else ("_" + departure_mode)
         self._name = name + "_" + line + "_" + station + mode_suffix
-        self.entity_id = "sensor." + self._name.lower().replace(" ", "_").replace("-", "_")
+        self.entity_id = "sensor." + slugify(self._name)
         self.method = method
         self.line = line
         self.station = station
