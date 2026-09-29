@@ -37,6 +37,7 @@ class Departure(TypedDict):
     # scheduled: str
     expected: str
     prediction_type: NotRequired[str]
+    current_location: NotRequired[str]
 
 
 def as_hasl_departures(departures: list[dict]) -> list[Departure]:
@@ -67,6 +68,7 @@ def as_hasl_departures(departures: list[dict]) -> list[Departure]:
                 "group_of_lines": "",
             },
             "expected": dep["expected"],
+            "current_location": dep.get("current_location", ""),
         }
         if "prediction_type" in dep:
             entry["prediction_type"] = dep["prediction_type"]
