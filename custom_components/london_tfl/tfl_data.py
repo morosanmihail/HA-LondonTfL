@@ -366,6 +366,7 @@ class TfLData:
                 "groupofline": "",
                 "icon": icon,
                 "prediction_type": prediction_type,
+                "current_location": item.get("currentLocation", ""),
             }
             departures.append(departure)
 
@@ -390,6 +391,7 @@ class TfLData:
                 "groupofline": "",
                 "icon": icon,
                 "prediction_type": "scheduled",
+                "current_location": item.get("currentLocation", ""),
             }
             departures.append(departure)
 
@@ -422,6 +424,7 @@ class TfLData:
                 "groupofline": "",
                 "icon": icon,
                 "prediction_type": "realtime",
+                "current_location": item.get("currentLocation", ""),
             }
             departures.append(departure)
 
