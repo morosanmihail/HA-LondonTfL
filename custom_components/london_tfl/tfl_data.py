@@ -270,9 +270,21 @@ class TfLData:
             ]
 
     def sort_data(self, max_items):
-        self._api_json = sorted(
+        sorted_result = sorted(
             self._raw_result, key=self._get_expected_arrival, reverse=False
-        )[:max_items]
+        )
+
+        deduped = []
+        seen_vehicle_ids = set()
+        for item in sorted_result:
+            vehicle_id = item.get("vehicleId")
+            if vehicle_id:
+                if vehicle_id in seen_vehicle_ids:
+                    continue
+                seen_vehicle_ids.add(vehicle_id)
+            deduped.append(item)
+
+        self._api_json = deduped[:max_items]
 
     def get_state(self):
         if len(self._api_json) > 0:
