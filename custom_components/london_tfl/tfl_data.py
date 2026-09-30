@@ -391,7 +391,7 @@ class TfLData:
                 "groupofline": "",
                 "icon": icon,
                 "prediction_type": "scheduled",
-                "current_location": item.get("currentLocation", ""),
+                "current_location": "",
             }
             departures.append(departure)
 
