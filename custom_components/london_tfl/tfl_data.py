@@ -79,7 +79,9 @@ class TfLData:
                 return "Cannot reach TfL"
             return data
         except json.JSONDecodeError:
-            _LOGGER.exception("Failed to interpret received JSON for %s", url)
+            _LOGGER.warning(
+                "Failed to interpret received JSON for %s: %.200r", url, result
+            )
             return "Cannot interpret JSON from TfL"
         except OSError:
             _LOGGER.exception("Internal error during request to %s", url)

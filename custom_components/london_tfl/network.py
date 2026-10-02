@@ -21,7 +21,15 @@ async def fetch(session, url):
             async with session.get(
                 url, headers={"Accept": "application/json"}
             ) as response:
-                return await response.text()
+                text = await response.text()
+                if response.status >= 400:
+                    _LOGGER.warning(
+                        "Request to %s returned HTTP %s: %.200s",
+                        url,
+                        response.status,
+                        text,
+                    )
+                return text
     except asyncio.TimeoutError:
         _LOGGER.warning("Request to %s timed out", url)
     except aiohttp.ClientError as e:
