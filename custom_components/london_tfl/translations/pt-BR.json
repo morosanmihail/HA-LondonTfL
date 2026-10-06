@@ -1,10 +1,23 @@
 {
   "config": {
+    "abort": {
+      "cannot_connect": "Não foi possível conectar aos servidores da TfL. Verifique sua conexão com a internet e tente novamente."
+    },
     "error": {
-      "request": "Falha ao conectar aos servidores TfL para recuperar dados."
+      "request": "Falha ao conectar aos servidores TfL para recuperar dados.",
+      "api_key_required": "As partidas da National Rail exigem uma chave de API do Rail Data Marketplace (ou um token Darwin legado).",
+      "invalid_crs": "Um código CRS tem exatamente três letras, ex.: VXH.",
+      "crs_not_found": "Não foi possível encontrar automaticamente o código CRS desta estação. Informe-o manualmente (consulte em https://crs.codes)."
     },
     "step": {
       "user": {
+        "data": {
+          "method": "Meio de transporte TfL"
+        },
+        "description": "Selecione o meio de transporte do qual sua linha faz parte.",
+        "title": "Meio de transporte"
+      },
+      "lines": {
         "data": {
           "line": "Linha TfL"
         },
@@ -13,14 +26,106 @@
       },
       "station": {
         "data": {
+          "nr_api_key": "Token legado do Darwin/Live Departure Boards",
           "station": "Estação TfL",
           "max": "Número máximo de partidas a relatar",
           "platform": "Filtrar por plataforma",
           "add_another": "Adicionar outra estação?",
-          "shortenStationNames": "Encurtar nomes de estações?"
+          "shortenStationNames": "Encurtar nomes de estações?",
+          "rdm_api_key": "Chave de API do Rail Data Marketplace",
+          "crs": "Código CRS da estação"
         },
         "description": "Digite a estação que você gostaria de seguir.",
+        "data_description": {
+          "nr_api_key": "Opcional. Token do serviço Darwin OpenLDBWS, descontinuado ({legacy_registration_url}). Usado sozinho se nenhuma chave do Rail Data Marketplace for informada; caso contrário, apenas como alternativa se a requisição ao Rail Data Marketplace falhar.",
+          "rdm_api_key": "Esta linha não é suportada pela API da TfL e requer uma chave de API do Rail Data Marketplace para exibir os horários de partida.\nCadastre-se em {registration_url}, assine o produto **Live Departure Board** e cole a chave de API do produto aqui. Você pode reutilizar a chave em várias paradas.",
+          "crs": "Opcional. Código de estação da National Rail com três letras (ex.: VXH). Deixe em branco para detectar automaticamente."
+        },
         "title": "Estação"
+      }
+    }
+  },
+  "options": {
+    "abort": {
+      "cannot_connect": "Não foi possível conectar aos servidores da TfL. Verifique sua conexão com a internet e tente novamente."
+    },
+    "error": {
+      "request": "Falha ao conectar aos servidores TfL para recuperar dados.",
+      "api_key_required": "As partidas da National Rail exigem uma chave de API do Rail Data Marketplace (ou um token Darwin legado).",
+      "invalid_crs": "Um código CRS tem exatamente três letras, ex.: VXH.",
+      "crs_not_found": "Não foi possível encontrar automaticamente o código CRS desta estação. Informe-o manualmente (consulte em https://crs.codes)."
+    },
+    "step": {
+      "init": {
+        "title": "Gerenciar paradas",
+        "menu_options": {
+          "add_stop": "Adicionar uma parada",
+          "edit_stop": "Editar uma parada",
+          "remove_stop": "Remover paradas"
+        }
+      },
+      "add_stop": {
+        "title": "Adicionar parada — meio de transporte",
+        "description": "Selecione o meio de transporte do qual sua linha faz parte.",
+        "data": {
+          "method": "Meio de transporte"
+        }
+      },
+      "add_line": {
+        "title": "Adicionar parada — linha",
+        "description": "Selecione a linha da qual sua estação faz parte.",
+        "data": {
+          "line": "Linha TfL"
+        }
+      },
+      "add_station": {
+        "title": "Adicionar parada — estação",
+        "description": "Selecione a estação e configure quantas partidas exibir.",
+        "data_description": {
+          "nr_api_key": "Opcional. Token do serviço Darwin OpenLDBWS, descontinuado ({legacy_registration_url}). Usado sozinho se nenhuma chave do Rail Data Marketplace for informada; caso contrário, apenas como alternativa se a requisição ao Rail Data Marketplace falhar.",
+          "rdm_api_key": "Esta linha não é suportada pela API da TfL e requer uma chave de API do Rail Data Marketplace para exibir os horários de partida.\nCadastre-se em {registration_url}, assine o produto **Live Departure Board** e cole a chave de API do produto aqui. Você pode reutilizar a chave em várias paradas.",
+          "crs": "Opcional. Código de estação da National Rail com três letras (ex.: VXH). Deixe em branco para detectar automaticamente."
+        },
+        "data": {
+          "station": "Estação",
+          "max": "Número máximo de partidas a relatar",
+          "platform": "Filtrar por plataforma (deixe em branco para todas)",
+          "shortenStationNames": "Encurtar nomes de estações?",
+          "rdm_api_key": "Chave de API do Rail Data Marketplace",
+          "nr_api_key": "Token legado do Darwin/Live Departure Boards",
+          "crs": "Código CRS da estação"
+        }
+      },
+      "edit_stop": {
+        "title": "Editar parada — selecionar parada",
+        "description": "Escolha qual parada você deseja editar.",
+        "data": {
+          "stop_index": "Parada"
+        }
+      },
+      "edit_station": {
+        "title": "Editar parada — {stop_name}",
+        "description": "Atualize as opções desta parada. A estação e a linha não podem ser alteradas aqui; remova e adicione a parada novamente para alterá-las.",
+        "data": {
+          "max": "Número máximo de partidas a relatar",
+          "platform": "Filtrar por plataforma (deixe em branco para todas)",
+          "shortenStationNames": "Encurtar nomes de estações?",
+          "rdm_api_key": "Chave de API do Rail Data Marketplace",
+          "nr_api_key": "Token legado do Darwin/Live Departure Boards",
+          "crs": "Código CRS da estação"
+        },
+        "data_description": {
+          "rdm_api_key": "Esta linha não é suportada pela API da TfL e requer uma chave de API do Rail Data Marketplace para exibir os horários de partida.\nCadastre-se em {registration_url}, assine o produto **Live Departure Board** e cole a chave de API do produto aqui. Você pode reutilizar a chave em várias paradas.",
+          "nr_api_key": "Opcional. Token do serviço Darwin OpenLDBWS, descontinuado ({legacy_registration_url}). Usado sozinho se nenhuma chave do Rail Data Marketplace for informada; caso contrário, apenas como alternativa se a requisição ao Rail Data Marketplace falhar.",
+          "crs": "Opcional. Código de estação da National Rail com três letras (ex.: VXH). Deixe em branco para detectar automaticamente."
+        }
+      },
+      "remove_stop": {
+        "title": "Remover paradas",
+        "description": "Selecione as paradas que você deseja remover.",
+        "data": {
+          "stop_indices": "Paradas a remover"
+        }
       }
     }
   }

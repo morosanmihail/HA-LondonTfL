@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import json
 import logging
 from typing import List
 from zoneinfo import ZoneInfo
@@ -80,7 +81,81 @@ class LDBWSError(Exception):
     """Raised when an error occurs while interacting with the LDBWS API."""
 
 
+RAIL_DATA_LDBWS_URL = (
+    "https://api1.raildata.org.uk/1010-live-departure-board-dep1_2"
+    "/LDBWS/api/20220120/GetDepartureBoard/{crs}"
+)
+
+
+class RailDataLDBWS:
+    """Live Departure Boards via the Rail Data Marketplace REST/JSON API.
+
+    Replaces the deprecated OpenLDBWS SOAP service (see LDBWS below). Same
+    underlying data model, but served as JSON and authenticated with an
+    `x-apikey` header issued by raildata.org.uk.
+    """
+
+    def __init__(self, *, api_key: str):
+        self.__api_key = api_key
+
+    async def get_departures(self, crs: str, *, n: int = 10) -> List[LDBWSDeparture]:
+        """
+        Raises LDBWSError if the request fails.
+        """
+        url = RAIL_DATA_LDBWS_URL.format(crs=crs.upper())
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with async_timeout.timeout(15):
+                    async with session.get(
+                        url,
+                        params={"numRows": str(n)},
+                        headers={
+                            "x-apikey": self.__api_key,
+                            "Accept": "application/json",
+                        },
+                    ) as response:
+                        text = await response.text()
+                        if response.status >= 400:
+                            raise LDBWSError(
+                                f"Rail Data Marketplace returned HTTP {response.status}"
+                                f" for {crs}: {text[:200]}"
+                            )
+                        res = json.loads(text)
+        except (asyncio.TimeoutError, aiohttp.ClientError, OSError) as e:
+            raise LDBWSError(f"could not reach Rail Data Marketplace: {e!r}") from e
+        except json.JSONDecodeError as e:
+            raise LDBWSError("could not interpret Rail Data Marketplace response") from e
+
+        return parse_rail_data_board(res)
+
+
+def parse_rail_data_board(res) -> List[LDBWSDeparture]:
+    """Convert a Rail Data Marketplace GetDepartureBoard JSON body into departures."""
+    if not isinstance(res, dict):
+        raise LDBWSError("unexpected Rail Data Marketplace response")
+
+    result = []
+    for service in res.get("trainServices") or []:
+        destinations = service.get("destination") or []
+        if not destinations or not service.get("std"):
+            continue
+        platform = service.get("platform")
+        result.append(
+            LDBWSDeparture(
+                location_name=res.get("locationName", ""),
+                platform=platform if platform is not None else "?",
+                destination_name=destinations[0].get("locationName", ""),
+                operator_code=(service.get("operatorCode") or "").upper(),
+                operator_id=(service.get("operator") or "").lower().replace(" ", "-"),
+                scheduled_departure_time=service["std"],
+            )
+        )
+    return result
+
+
 class LDBWS:
+    """Deprecated OpenLDBWS SOAP client, kept for entries configured with a Darwin token."""
+
     def __init__(self, *, token: str):
         # FIXME: we should use the default transport but zeep crashes due to changes in httpx
         # see https://github.com/mvantellingen/python-zeep/pull/1462

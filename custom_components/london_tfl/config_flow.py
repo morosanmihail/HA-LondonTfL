@@ -16,13 +16,18 @@ from .const import (
     CONF_SHORTEN_STATION_NAMES,
     CONF_MAX,
     CONF_NR_API_KEY,
+    CONF_RDM_API_KEY,
+    CONF_CRS,
     CONF_PLATFORM,
     DEFAULT_MAX,
     DEFAULT_METHODS,
     DOMAIN,
+    NR_LEGACY_REGISTRATION_URL,
+    NR_REGISTRATION_URL,
     TFL_LINES_URL,
     TFL_STATIONS_URL,
 )
+from .codes import atco_to_crs, is_valid_crs, load_crs_codes
 from .network import request
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,11 +42,72 @@ class StationOption(NamedTuple):
         what gets persisted as station_display_name / used for the entry title,
         since direction is a stable physical property of the stop (unlike line
         coverage, which depends on what was selected in this particular flow).
+    crs: National Rail CRS code, when known (national-rail stations only).
     """
 
     label: str
     name: str
     display_name: str
+    crs: str = ""
+
+
+_DESCRIPTION_PLACEHOLDERS = {
+    "registration_url": NR_REGISTRATION_URL,
+    "legacy_registration_url": NR_LEGACY_REGISTRATION_URL,
+}
+
+
+def _needs_nr_keys(method: str, line_csv: str) -> bool:
+    """National Rail lines (except Thameslink, served by TfL) need LDBWS credentials."""
+    return method == "national-rail" and "thameslink" not in line_csv.split(",")
+
+
+def _nr_fields(stops: list[dict[str, Any]]) -> dict:
+    """Form fields for National Rail credentials and CRS override.
+
+    API keys default to ones already entered for another stop in this flow.
+    """
+    defaults: dict[str, str] = {}
+    for stop in stops:
+        for key in (CONF_RDM_API_KEY, CONF_NR_API_KEY):
+            if stop.get(key) and key not in defaults:
+                defaults[key] = stop[key]
+
+    fields: dict = {}
+    for key in (CONF_RDM_API_KEY, CONF_NR_API_KEY):
+        kwargs = {"default": defaults[key]} if key in defaults else {}
+        fields[vol.Optional(key, **kwargs)] = cv.string
+    fields[vol.Optional(CONF_CRS)] = cv.string
+    return fields
+
+
+async def _resolve_nr_stop(
+    hass, user_input: dict[str, Any], station_id: str, option: "StationOption | None"
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Validate National Rail credentials and resolve the station's CRS code.
+
+    Returns (fields to store on the stop, form errors).
+    """
+    errors: dict[str, str] = {}
+    rdm_key = (user_input.get(CONF_RDM_API_KEY) or "").strip() or None
+    nr_key = (user_input.get(CONF_NR_API_KEY) or "").strip() or None
+    if not rdm_key and not nr_key:
+        errors["base"] = "api_key_required"
+
+    crs = (user_input.get(CONF_CRS) or "").strip().upper()
+    if crs:
+        if not is_valid_crs(crs):
+            errors[CONF_CRS] = "invalid_crs"
+    elif option is not None and option.crs:
+        crs = option.crs
+    else:
+        try:
+            crs = await atco_to_crs(hass, station_id, option.name if option else "")
+        except Exception:
+            _LOGGER.warning("Could not resolve CRS code for %s", station_id, exc_info=True)
+            errors[CONF_CRS] = "crs_not_found"
+
+    return {CONF_RDM_API_KEY: rdm_key, CONF_NR_API_KEY: nr_key, CONF_CRS: crs or None}, errors
 
 
 def _direction_text(item: dict) -> str:
@@ -103,6 +169,8 @@ async def _fetch_stations(method: str, line_csv: str) -> dict[str, StationOption
     total_lines = len(line_ids)
     ordered_ids = sorted(items, key=lambda sid: counts[sid], reverse=True)
 
+    crs_codes = await load_crs_codes() if method == "national-rail" and items else None
+
     stations: dict[str, StationOption] = {}
     for station_id in ordered_ids:
         item = items[station_id]
@@ -116,10 +184,15 @@ async def _fetch_stations(method: str, line_csv: str) -> dict[str, StationOption
             label += f" ({item['indicator']})"
         if direction:
             label += f" — towards {direction}"
+        crs = (crs_codes.lookup(station_id, name) or "") if crs_codes else ""
+        if crs:
+            label += f" [{crs}]"
         if total_lines > 1:
             label += f" [{counts[station_id]}/{total_lines} lines]"
 
-        stations[station_id] = StationOption(label=label, name=name, display_name=display_name)
+        stations[station_id] = StationOption(
+            label=label, name=name, display_name=display_name, crs=crs
+        )
 
     return stations
 
@@ -203,14 +276,22 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_station(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
+        needs_nr_keys = _needs_nr_keys(self.data["lastMethod"], self.data["lastLine"])
         if user_input is not None:
             station_id = user_input[CONF_STATION]
             station_option = self._current_stations.get(station_id)
+            nr_data: dict[str, Any] = {CONF_NR_API_KEY: None}
+            if needs_nr_keys:
+                nr_data, errors = await _resolve_nr_stop(
+                    self.hass, user_input, station_id, station_option
+                )
+
+        if user_input is not None and not errors:
             self.data[CONF_STOPS].append(
                 {
                     CONF_LINE: self.data["lastLine"],
                     CONF_METHOD: self.data["lastMethod"],
-                    CONF_NR_API_KEY: user_input.get(CONF_NR_API_KEY, None),
+                    **nr_data,
                     CONF_STATION: station_id,
                     CONF_MAX: user_input[CONF_MAX],
                     CONF_PLATFORM: user_input[CONF_PLATFORM],
@@ -230,43 +311,38 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             return self.async_create_entry(title=title, data=self.data)
 
-        stations = await _fetch_stations(self.data["lastMethod"], self.data["lastLine"])
-        self._current_stations = stations
+        # Reuse the station list when re-showing the form after a validation error.
+        if user_input is None or not self._current_stations:
+            self._current_stations = await _fetch_stations(
+                self.data["lastMethod"], self.data["lastLine"]
+            )
+        stations = self._current_stations
 
         if not stations:
             return self.async_abort(reason="cannot_connect")
 
-        extra_fields = {}
+        extra_fields = _nr_fields(self.data[CONF_STOPS]) if needs_nr_keys else {}
 
-        if (
-            self.data["lastMethod"] == "national-rail"
-            and "thameslink" not in self.data["lastLine"].split(",")
-        ):
-            # if a user already supplied a token in this specific flow, retrieve it
-            kwargs = {}
-            for stop in self.data[CONF_STOPS]:
-                token = stop.get(CONF_NR_API_KEY)
-                if token is not None:
-                    kwargs["default"] = token
-
-            extra_fields[vol.Required(CONF_NR_API_KEY, **kwargs)] = cv.string
+        data_schema = vol.Schema(
+            {
+                **extra_fields,
+                vol.Required(CONF_STATION): vol.In(
+                    {sid: opt.label for sid, opt in stations.items()}
+                ),
+                vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
+                vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
+                vol.Optional(CONF_PLATFORM, default=""): cv.string,
+                vol.Optional("add_another", default=False): cv.boolean,
+            }
+        )
+        if user_input is not None:
+            data_schema = self.add_suggested_values_to_schema(data_schema, user_input)
 
         return self.async_show_form(
             step_id="station",
-            data_schema=vol.Schema(
-                {
-                    **extra_fields,
-                    vol.Required(CONF_STATION): vol.In(
-                        {sid: opt.label for sid, opt in stations.items()}
-                    ),
-                    vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
-                    vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
-                    vol.Optional(CONF_PLATFORM, default=""): cv.string,
-                    vol.Optional("add_another", default=False): cv.boolean,
-                }
-            ),
+            data_schema=data_schema,
             errors=errors,
-            description_placeholders={"registration_url": "https://www.nationalrail.co.uk/developers/darwin-data-feeds"},
+            description_placeholders=_DESCRIPTION_PLACEHOLDERS,
         )
 
 
@@ -284,8 +360,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._last_method: str = ""
         self._last_line: str = ""
         self._editing_index: int | None = None
-        # Cached station name map populated when showing the add-station form.
-        self._current_stations: dict[str, str] = {}
+        # Cached station map populated when showing the add-station form.
+        self._current_stations: dict[str, StationOption] = {}
 
     def _stop_label(self, stop: dict[str, Any]) -> str:
         """Return a human-readable label for a stop."""
@@ -368,12 +444,24 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_add_station(self, user_input: dict[str, Any] | None = None):
         """Step 3 of adding a stop: pick the station and set options."""
+        errors: dict[str, str] = {}
+        needs_nr_keys = _needs_nr_keys(self._last_method, self._last_line)
         if user_input is not None:
+            nr_data: dict[str, Any] = {CONF_NR_API_KEY: None}
+            if needs_nr_keys:
+                nr_data, errors = await _resolve_nr_stop(
+                    self.hass,
+                    user_input,
+                    user_input[CONF_STATION],
+                    self._current_stations.get(user_input[CONF_STATION]),
+                )
+
+        if user_input is not None and not errors:
             self._stops.append(
                 {
                     CONF_LINE: self._last_line,
                     CONF_METHOD: self._last_method,
-                    CONF_NR_API_KEY: user_input.get(CONF_NR_API_KEY),
+                    **nr_data,
                     CONF_STATION: user_input[CONF_STATION],
                     CONF_MAX: user_input[CONF_MAX],
                     CONF_PLATFORM: user_input[CONF_PLATFORM],
@@ -388,42 +476,37 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             )
             return self._save()
 
-        errors: dict[str, str] = {}
-        self._current_stations = await _fetch_stations(
-            self._last_method, self._last_line
-        )
+        # Reuse the station list when re-showing the form after a validation error.
+        if user_input is None or not self._current_stations:
+            self._current_stations = await _fetch_stations(
+                self._last_method, self._last_line
+            )
 
         if not self._current_stations:
             return self.async_abort(reason="cannot_connect")
 
-        extra_fields: dict = {}
-        if (
-            self._last_method == "national-rail"
-            and "thameslink" not in self._last_line.split(",")
-        ):
-            # Reuse a token already entered for another NR stop in this session.
-            kwargs: dict = {}
-            for stop in self._stops:
-                if stop.get(CONF_NR_API_KEY):
-                    kwargs["default"] = stop[CONF_NR_API_KEY]
-                    break
-            extra_fields[vol.Required(CONF_NR_API_KEY, **kwargs)] = cv.string
+        # Reuse keys already entered for another NR stop in this entry.
+        extra_fields = _nr_fields(self._stops) if needs_nr_keys else {}
+
+        data_schema = vol.Schema(
+            {
+                **extra_fields,
+                vol.Required(CONF_STATION): vol.In(
+                    {sid: opt.label for sid, opt in self._current_stations.items()}
+                ),
+                vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
+                vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
+                vol.Optional(CONF_PLATFORM, default=""): cv.string,
+            }
+        )
+        if user_input is not None:
+            data_schema = self.add_suggested_values_to_schema(data_schema, user_input)
 
         return self.async_show_form(
             step_id="add_station",
-            data_schema=vol.Schema(
-                {
-                    **extra_fields,
-                    vol.Required(CONF_STATION): vol.In(
-                        {sid: opt.label for sid, opt in self._current_stations.items()}
-                    ),
-                    vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
-                    vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
-                    vol.Optional(CONF_PLATFORM, default=""): cv.string,
-                }
-            ),
+            data_schema=data_schema,
             errors=errors,
-            description_placeholders={"registration_url": "https://www.nationalrail.co.uk/developers/darwin-data-feeds"},
+            description_placeholders=_DESCRIPTION_PLACEHOLDERS,
         )
 
     # ── Edit stop ─────────────────────────────────────────────────────────────
@@ -446,13 +529,32 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_edit_station(self, user_input: dict[str, Any] | None = None):
         """Edit the options for the selected stop (max, platform, shorten names, NR token)."""
         stop = self._stops[self._editing_index]
+        needs_nr_keys = _needs_nr_keys(
+            stop.get(CONF_METHOD, ""), stop.get(CONF_LINE, "")
+        )
+        errors: dict[str, str] = {}
 
         if user_input is not None:
+            nr_data: dict[str, Any] = {}
+            if needs_nr_keys:
+                # Fields use suggested values (not defaults) so they can be cleared,
+                # e.g. to drop a legacy Darwin token after switching to Rail Data,
+                # or to re-detect the CRS code by blanking it.
+                nr_data, errors = await _resolve_nr_stop(
+                    self.hass,
+                    user_input,
+                    stop[CONF_STATION],
+                    StationOption(
+                        label="",
+                        name=stop.get("station_display_name") or "",
+                        display_name="",
+                    ),
+                )
+
+        if user_input is not None and not errors:
             self._stops[self._editing_index] = {
                 **stop,
-                CONF_NR_API_KEY: user_input.get(
-                    CONF_NR_API_KEY, stop.get(CONF_NR_API_KEY)
-                ),
+                **nr_data,
                 CONF_MAX: user_input[CONF_MAX],
                 CONF_PLATFORM: user_input[CONF_PLATFORM],
                 CONF_SHORTEN_STATION_NAMES: user_input[CONF_SHORTEN_STATION_NAMES],
@@ -460,18 +562,19 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             return self._save()
 
         extra_fields: dict = {}
-        if (
-            stop.get(CONF_METHOD) == "national-rail"
-            and stop.get(CONF_LINE) != "thameslink"
-        ):
-            kwargs: dict = {}
-            if stop.get(CONF_NR_API_KEY):
-                kwargs["default"] = stop[CONF_NR_API_KEY]
-            extra_fields[vol.Optional(CONF_NR_API_KEY, **kwargs)] = cv.string
+        if needs_nr_keys:
+            for key in (CONF_RDM_API_KEY, CONF_NR_API_KEY, CONF_CRS):
+                extra_fields[
+                    vol.Optional(key, description={"suggested_value": stop.get(key)})
+                ] = cv.string
 
         return self.async_show_form(
             step_id="edit_station",
-            description_placeholders={"stop_name": self._stop_label(stop)},
+            errors=errors,
+            description_placeholders={
+                **_DESCRIPTION_PLACEHOLDERS,
+                "stop_name": self._stop_label(stop),
+            },
             data_schema=vol.Schema(
                 {
                     **extra_fields,
