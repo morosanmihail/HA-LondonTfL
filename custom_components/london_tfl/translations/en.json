@@ -7,7 +7,7 @@
       "request": "Failed to connect to TfL servers to retrieve data.",
       "api_key_required": "National Rail departures need a Rail Data Marketplace API key (or a legacy Darwin token).",
       "invalid_crs": "A CRS code is exactly three letters, e.g. VXH.",
-      "crs_not_found": "Could not find the CRS code for this station automatically. Please enter it (look it up at https://crs.codes)."
+      "crs_not_found": "Could not find the CRS code for this station automatically. Please enter it (look it up at {crs_lookup_url})."
     },
     "step": {
       "user": {
@@ -53,7 +53,7 @@
       "request": "Failed to connect to TfL servers to retrieve data.",
       "api_key_required": "National Rail departures need a Rail Data Marketplace API key (or a legacy Darwin token).",
       "invalid_crs": "A CRS code is exactly three letters, e.g. VXH.",
-      "crs_not_found": "Could not find the CRS code for this station automatically. Please enter it (look it up at https://crs.codes)."
+      "crs_not_found": "Could not find the CRS code for this station automatically. Please enter it (look it up at {crs_lookup_url})."
     },
     "step": {
       "init": {

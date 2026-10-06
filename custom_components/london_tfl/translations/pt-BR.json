@@ -7,7 +7,7 @@
       "request": "Falha ao conectar aos servidores TfL para recuperar dados.",
       "api_key_required": "As partidas da National Rail exigem uma chave de API do Rail Data Marketplace (ou um token Darwin legado).",
       "invalid_crs": "Um código CRS tem exatamente três letras, ex.: VXH.",
-      "crs_not_found": "Não foi possível encontrar automaticamente o código CRS desta estação. Informe-o manualmente (consulte em https://crs.codes)."
+      "crs_not_found": "Não foi possível encontrar automaticamente o código CRS desta estação. Informe-o manualmente (consulte em {crs_lookup_url})."
     },
     "step": {
       "user": {
@@ -53,7 +53,7 @@
       "request": "Falha ao conectar aos servidores TfL para recuperar dados.",
       "api_key_required": "As partidas da National Rail exigem uma chave de API do Rail Data Marketplace (ou um token Darwin legado).",
       "invalid_crs": "Um código CRS tem exatamente três letras, ex.: VXH.",
-      "crs_not_found": "Não foi possível encontrar automaticamente o código CRS desta estação. Informe-o manualmente (consulte em https://crs.codes)."
+      "crs_not_found": "Não foi possível encontrar automaticamente o código CRS desta estação. Informe-o manualmente (consulte em {crs_lookup_url})."
     },
     "step": {
       "init": {

@@ -19,6 +19,7 @@ from .const import (
     CONF_RDM_API_KEY,
     CONF_CRS,
     CONF_PLATFORM,
+    CRS_LOOKUP_URL,
     DEFAULT_MAX,
     DEFAULT_METHODS,
     DOMAIN,
@@ -54,6 +55,7 @@ class StationOption(NamedTuple):
 _DESCRIPTION_PLACEHOLDERS = {
     "registration_url": NR_REGISTRATION_URL,
     "legacy_registration_url": NR_LEGACY_REGISTRATION_URL,
+    "crs_lookup_url": CRS_LOOKUP_URL,
 }
 
 

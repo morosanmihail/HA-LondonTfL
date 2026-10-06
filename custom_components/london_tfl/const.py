@@ -76,6 +76,7 @@ TFL_NR_LINE_TO_TOC = {
 
 NR_REGISTRATION_URL = "https://raildata.org.uk"
 NR_LEGACY_REGISTRATION_URL = "https://www.nationalrail.co.uk/developers/darwin-data-feeds"
+CRS_LOOKUP_URL = "https://crs.codes"
 
 SHORTEN_STATION_NAMES = ["Underground Station", "DLR Station", "Rail Station"]
 
