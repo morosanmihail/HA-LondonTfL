@@ -162,7 +162,25 @@ class TestTfLDataSortAndFilter:
         tfl = TfLData(method="tube", line="jubilee", station="Stratford Underground Station")
         tfl.populate(raw_underground, filter_platform="")
         tfl.sort_data(50)
-        assert len(tfl.get_departures()) == len(raw_underground)
+        # TfL lists each train once per candidate platform (13/14/15 at the
+        # Stratford terminus); sort_data keeps one entry per vehicleId.
+        unique_vehicles = {item["vehicleId"] for item in raw_underground}
+        assert len(tfl.get_departures()) == len(unique_vehicles)
+
+    def test_sort_data_deduplicates_by_vehicle_id(self, raw_underground: list) -> None:
+        tfl = TfLData(method="tube", line="jubilee", station="Stratford Underground Station")
+        tfl.populate(raw_underground, filter_platform="")
+        tfl.sort_data(50)
+        vehicle_ids = [item["vehicleId"] for item in tfl._api_json]
+        assert len(vehicle_ids) == len(set(vehicle_ids))
+        # The earliest prediction for each vehicle is the one kept.
+        for item in tfl._api_json:
+            earliest = min(
+                r["expectedArrival"]
+                for r in raw_underground
+                if r["vehicleId"] == item["vehicleId"]
+            )
+            assert item["expectedArrival"] == earliest
 
     def test_get_state_returns_hhmm_format(self, underground_data: TfLData) -> None:
         underground_data.get_departures()

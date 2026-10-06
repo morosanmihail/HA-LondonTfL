@@ -6,7 +6,9 @@ CONF_METHOD = "method"
 CONF_LINE = "line"
 CONF_SHORTEN_STATION_NAMES = "shortenStationNames"
 CONF_STATION = "station"
-CONF_NR_API_KEY = "nr_api_key"
+CONF_NR_API_KEY = "nr_api_key"  # legacy Darwin OpenLDBWS (SOAP) token
+CONF_RDM_API_KEY = "rdm_api_key"  # Rail Data Marketplace LDBWS API key
+CONF_CRS = "crs"
 CONF_PLATFORM = "platform"
 CONF_MAX = "max"
 DEFAULT_MAX = 3
@@ -61,6 +63,7 @@ TFL_NR_LINE_TO_TOC = {
     "london-north-eastern-railway": "GR",
     "west-midlands-trains": "LM",
     "northern-trains": "NT",
+    "northern-rail": "NT",
     "hull-trains": "HT",
     "grand-central": "GC",
     "caledonian-sleeper": "CS",
@@ -68,7 +71,12 @@ TFL_NR_LINE_TO_TOC = {
     "scotrail": "SR",
     "merseyrail": "ME",
     "island-line": "IL",
+    "lumo": "LD",
 }
+
+NR_REGISTRATION_URL = "https://raildata.org.uk"
+NR_LEGACY_REGISTRATION_URL = "https://www.nationalrail.co.uk/developers/darwin-data-feeds"
+CRS_LOOKUP_URL = "https://crs.codes"
 
 SHORTEN_STATION_NAMES = ["Underground Station", "DLR Station", "Rail Station"]
 

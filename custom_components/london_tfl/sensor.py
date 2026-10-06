@@ -24,6 +24,8 @@ from .const import (
     CONF_PLATFORM,
     CONF_MAX,
     CONF_NR_API_KEY,
+    CONF_RDM_API_KEY,
+    CONF_CRS,
     DEFAULT_ICONS,
     DEFAULT_MAX,
     DEFAULT_NAME,
@@ -49,6 +51,9 @@ CONFIG_STOP = vol.Schema(
         vol.Optional(CONF_PLATFORM, default=""): cv.string,
         vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
         vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
+        vol.Optional(CONF_RDM_API_KEY): cv.string,
+        vol.Optional(CONF_NR_API_KEY): cv.string,
+        vol.Optional(CONF_CRS): cv.string,
     }
 )
 
@@ -79,6 +84,8 @@ async def async_setup_entry(
                 line=stop[CONF_LINE],
                 station=stop[CONF_STATION],
                 nr_api_key=stop.get(CONF_NR_API_KEY),
+                rdm_api_key=stop.get(CONF_RDM_API_KEY),
+                crs=stop.get(CONF_CRS),
             )
             common_kwargs = dict(
                 name=name,
@@ -133,6 +140,8 @@ async def async_setup_platform(
                 line=stop[CONF_LINE],
                 station=stop[CONF_STATION],
                 nr_api_key=stop.get(CONF_NR_API_KEY),
+                rdm_api_key=stop.get(CONF_RDM_API_KEY),
+                crs=stop.get(CONF_CRS),
             )
             common_kwargs = dict(
                 name=name,

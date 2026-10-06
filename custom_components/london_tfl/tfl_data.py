@@ -16,7 +16,12 @@ from custom_components.london_tfl.const import (
     TFL_NR_LINE_TO_TOC,
     USE_LDBWS_URL,
 )
-from custom_components.london_tfl.network import LDBWS, LDBWSError, request
+from custom_components.london_tfl.network import (
+    LDBWS,
+    LDBWSError,
+    RailDataLDBWS,
+    request,
+)
 
 
 def get_destination(entry, use_destination_name=False):
@@ -46,7 +51,14 @@ def time_to_station(entry, arrival, with_destination=True, style="{0}m {1}s"):
 
 class TfLData:
     def __init__(
-        self, *, method: str, line: str, station: str, nr_api_key: Optional[str] = None
+        self,
+        *,
+        method: str,
+        line: str,
+        station: str,
+        nr_api_key: Optional[str] = None,
+        rdm_api_key: Optional[str] = None,
+        crs: Optional[str] = None,
     ):
         self._raw_result = []
         self._last_update = None
@@ -56,7 +68,10 @@ class TfLData:
         self.line = line
         self.station = station
         self.nr_api_key = nr_api_key
+        self.rdm_api_key = rdm_api_key
+        self.crs = crs.upper() if crs else None
         self.__ldbws_client = None  # initialized lazily
+        self.__rdm_client = None  # initialized lazily
         self._timetable_json = None
         self._timetable_last_fetch = None
 
@@ -88,30 +103,55 @@ class TfLData:
             return "Cannot reach TfL"
 
     async def _fetch_ldbws(self, hass) -> Union[str, list]:
-        if self.nr_api_key is None:
+        if not self.rdm_api_key and not self.nr_api_key:
             _LOGGER.warning(
                 "Legacy National Rail sensor detected, please recreate to access departure times"
             )
             return "Please recreate this entity to access National Rail departure times"
 
-        if self.__ldbws_client is None:
-            self.__ldbws_client = await hass.async_add_executor_job(
-                partial(LDBWS, token=self.nr_api_key)
-            )
         try:
-            code = await atco_to_crs(hass, self.station)
+            code = self.crs or await atco_to_crs(hass, self.station)
             _LOGGER.debug("Found code for station %s: %s", self.station, code)
-            result = await self.__ldbws_client.get_departures(code)
-            _LOGGER.debug("Received LDBWS response: %s", result)
-        except LDBWSError:
-            _LOGGER.exception("Failed to get departures for %s", self.station)
-            return "LDBWS API error"
         except ValueError:
             _LOGGER.exception("Invalid station code for %s", self.station)
             return "Cannot fetch station code"
         except Exception:
-            _LOGGER.exception("Unexpected error fetching National Rail departures for %s", self.station)
-            return "National Rail fetch error"
+            _LOGGER.exception("Unexpected error resolving CRS code for %s", self.station)
+            return "Cannot fetch station code"
+
+        result = None
+        if self.rdm_api_key:
+            if self.__rdm_client is None:
+                self.__rdm_client = RailDataLDBWS(api_key=self.rdm_api_key)
+            try:
+                result = await self.__rdm_client.get_departures(code)
+                _LOGGER.debug("Received Rail Data Marketplace response: %s", result)
+            except Exception as e:
+                if not self.nr_api_key:
+                    _LOGGER.warning(
+                        "Failed to get departures for %s (%s) from Rail Data Marketplace: %s",
+                        self.station, code, e,
+                    )
+                    return "Rail Data API error"
+                _LOGGER.warning(
+                    "Rail Data Marketplace request failed for %s (%s), falling back to legacy Darwin API: %s",
+                    self.station, code, e,
+                )
+
+        if result is None:
+            if self.__ldbws_client is None:
+                self.__ldbws_client = await hass.async_add_executor_job(
+                    partial(LDBWS, token=self.nr_api_key)
+                )
+            try:
+                result = await self.__ldbws_client.get_departures(code)
+                _LOGGER.debug("Received LDBWS response: %s", result)
+            except LDBWSError:
+                _LOGGER.exception("Failed to get departures for %s", self.station)
+                return "LDBWS API error"
+            except Exception:
+                _LOGGER.exception("Unexpected error fetching National Rail departures for %s", self.station)
+                return "National Rail fetch error"
 
         toc = TFL_NR_LINE_TO_TOC.get(self.line)
         if toc:

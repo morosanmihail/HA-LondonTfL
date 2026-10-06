@@ -5,24 +5,120 @@ ATCO codes for National Rail stations:
   <3-digit area code><0 or G><TIPLOC>
 e.g. 910GKNGX → TIPLOC KNGX, CRS KGX
 
-CRS codes are fetched from railwaycodes.org.uk (the same source pyrcs scrapes)
-but per-letter rather than bulk, which avoids pyrcs's aggregation bug.
-Each letter page is fetched once and cached for the process lifetime.
+CRS codes are primarily looked up in the crs.codes station list (a single JSON
+file mapping every TIPLOC to its CRS), matching first by TIPLOC and then by
+station name, since TfL occasionally uses a different TIPLOC for the same
+station (e.g. 910GVICTRIC vs VICTRIA for London Victoria).
+
+As a fallback, CRS codes are fetched from railwaycodes.org.uk (the same source
+pyrcs scrapes) but per-letter rather than bulk, which avoids pyrcs's
+aggregation bug. Each letter page is fetched once and cached for the process
+lifetime.
 """
 
 import html.parser
 import json
 import logging
+import re
+import time
 
 import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 
+_CRS_CODES_URL = "https://crs.codes/data/stations.json"
+_CRS_CODES_TTL = 24 * 3600
 _RWC_URL = "http://www.railwaycodes.org.uk/crs/crs{}.shtm"
 _TFL_STOPPOINT_URL = "https://api.tfl.gov.uk/StopPoint/{}"
+_USER_AGENT = "HA-LondonTfL/1.0 (https://github.com/morosanmihail/HA-LondonTfL)"
 
 _letter_cache: dict[str, dict[str, str]] = {}
 _crs_cache: dict[str, str] = {}
+
+
+class CrsCodes:
+    """TIPLOC→CRS and station-name→CRS lookups built from crs.codes data."""
+
+    def __init__(self, stations: list[dict]):
+        self.by_tiploc: dict[str, str] = {}
+        by_name: dict[str, set[str]] = {}
+        for station in stations:
+            crs = (station.get("crs") or "").strip().upper()
+            if not crs:
+                continue
+            tiploc = (station.get("tiploc") or "").strip().upper()
+            if tiploc:
+                self.by_tiploc[tiploc] = crs
+            # Only public stations take part in name matching; X-prefixed CRS
+            # codes are junctions/sidings that would otherwise cause collisions.
+            if (
+                crs.startswith("X")
+                or station.get("hasDepot")
+                or station.get("hasSidings")
+            ):
+                continue
+            name = normalise_station_name(station.get("name") or "")
+            if name:
+                by_name.setdefault(name, set()).add(crs)
+        # Drop ambiguous names rather than guess.
+        self.by_name: dict[str, str] = {
+            name: next(iter(codes)) for name, codes in by_name.items() if len(codes) == 1
+        }
+
+    def lookup(self, atco: str, name: str = "") -> str | None:
+        """Return the CRS for a TfL ATCO code (and optional TfL commonName)."""
+        if len(atco) > 4:
+            crs = self.by_tiploc.get(atco[4:].upper())
+            if crs:
+                return crs
+        if name:
+            return self.by_name.get(normalise_station_name(name))
+        return None
+
+
+def normalise_station_name(name: str) -> str:
+    """Normalise a station name so TfL commonNames and crs.codes names compare equal."""
+    name = name.lower().replace("&", "and")
+    name = re.sub(
+        r"\b(rail station|international|ferry terminal|ferry landing)\b", "", name
+    )
+    return re.sub(r"[^a-z0-9]", "", name)
+
+
+_crs_codes: CrsCodes | None = None
+_crs_codes_loaded_at: float = 0.0
+
+
+async def load_crs_codes() -> CrsCodes | None:
+    """Fetch (or return the cached) crs.codes station list. Returns None on failure."""
+    global _crs_codes, _crs_codes_loaded_at
+    if _crs_codes is not None and time.monotonic() - _crs_codes_loaded_at < _CRS_CODES_TTL:
+        return _crs_codes
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                _CRS_CODES_URL,
+                headers={"User-Agent": _USER_AGENT, "Accept": "application/json"},
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as resp:
+                if resp.status != 200:
+                    _LOGGER.warning("crs.codes returned HTTP %s", resp.status)
+                    return _crs_codes
+                stations = await resp.json(content_type=None)
+    except Exception as e:
+        _LOGGER.warning("Failed to fetch station list from crs.codes: %s", e)
+        return _crs_codes
+    if not isinstance(stations, list):
+        _LOGGER.warning("Unexpected station list format from crs.codes")
+        return _crs_codes
+    _crs_codes = CrsCodes(stations)
+    _crs_codes_loaded_at = time.monotonic()
+    _LOGGER.debug("Loaded %d TIPLOC→CRS entries from crs.codes", len(_crs_codes.by_tiploc))
+    return _crs_codes
+
+
+def is_valid_crs(code: str) -> bool:
+    return bool(re.fullmatch(r"[A-Za-z]{3}", code or ""))
 
 
 class _TableParser(html.parser.HTMLParser):
@@ -96,7 +192,7 @@ async def _load_letter(letter: str) -> dict[str, str]:
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 url,
-                headers={"User-Agent": "HA-LondonTfL/1.0 (https://github.com/morosanmihail/HA-LondonTfL)"},
+                headers={"User-Agent": _USER_AGENT},
                 timeout=aiohttp.ClientTimeout(total=15),
             ) as resp:
                 if resp.status != 200:
@@ -143,13 +239,22 @@ async def _tfl_api_crs(atco: str) -> str | None:
     return None
 
 
-async def atco_to_crs(hass, atco: str) -> str:
+async def atco_to_crs(hass, atco: str, name: str = "") -> str:
     """
-    Returns the CRS code for a given ATCO code.
+    Returns the CRS code for a given ATCO code (name is the optional TfL
+    commonName, used as a fallback match).
     Raises ValueError if no CRS code can be found.
     """
     if atco in _crs_cache:
         return _crs_cache[atco]
+
+    crs_codes = await load_crs_codes()
+    if crs_codes is not None:
+        crs = crs_codes.lookup(atco, name)
+        if crs:
+            _crs_cache[atco] = crs
+            _LOGGER.debug("Resolved %s → %s via crs.codes", atco, crs)
+            return crs
 
     tiploc = atco_to_tiploc(atco)
     letter = tiploc[0].upper()

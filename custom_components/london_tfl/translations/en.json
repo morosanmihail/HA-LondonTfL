@@ -4,10 +4,20 @@
       "cannot_connect": "Could not connect to TfL servers. Please check your internet connection and try again."
     },
     "error": {
-      "request": "Failed to connect to TfL servers to retrieve data."
+      "request": "Failed to connect to TfL servers to retrieve data.",
+      "api_key_required": "National Rail departures need a Rail Data Marketplace API key (or a legacy Darwin token).",
+      "invalid_crs": "A CRS code is exactly three letters, e.g. VXH.",
+      "crs_not_found": "Could not find the CRS code for this station automatically. Please enter it (look it up at {crs_lookup_url})."
     },
     "step": {
       "user": {
+        "data": {
+          "method": "TfL Method of Transportation"
+        },
+        "description": "Select the method of transportation your line is part of.",
+        "title": "Method"
+      },
+      "lines": {
         "data": {
           "line": "TfL Line"
         },
@@ -16,16 +26,20 @@
       },
       "station": {
         "data": {
-          "nr_api_key": "Your Darwin/Live Departure Boards token",
+          "nr_api_key": "Legacy Darwin/Live Departure Boards token",
           "station": "TfL Station",
           "max": "Maximum number of departures to report",
           "platform": "Filter by platform",
           "add_another": "Add another station?",
-          "shortenStationNames": "Shorten station names?"
+          "shortenStationNames": "Shorten station names?",
+          "rdm_api_key": "Rail Data Marketplace API key",
+          "crs": "Station CRS code"
         },
         "description": "Enter the station you would like to follow.",
         "data_description": {
-          "nr_api_key": "This line is not supported by the TfL API and requires a Darwin token to show departure times.\nRegister at {registration_url} and request access to **Live Departure Boards (Darwin)**. Paste the token here.\nIf you already have a token, you can reuse it for multiple stops."
+          "nr_api_key": "Optional. Token for the deprecated Darwin OpenLDBWS service ({legacy_registration_url}). Used on its own if no Rail Data Marketplace key is set, otherwise only as a fallback if the Rail Data Marketplace request fails.",
+          "rdm_api_key": "This line is not supported by the TfL API and requires a Rail Data Marketplace API key to show departure times.\nRegister at {registration_url}, subscribe to **Live Departure Board** and paste the product's API key here. You can reuse the key for multiple stops.",
+          "crs": "Optional. Three-letter National Rail station code (e.g. VXH). Leave blank to detect it automatically."
         },
         "title": "Station"
       }
@@ -36,7 +50,10 @@
       "cannot_connect": "Could not connect to TfL servers. Please check your internet connection and try again."
     },
     "error": {
-      "request": "Failed to connect to TfL servers to retrieve data."
+      "request": "Failed to connect to TfL servers to retrieve data.",
+      "api_key_required": "National Rail departures need a Rail Data Marketplace API key (or a legacy Darwin token).",
+      "invalid_crs": "A CRS code is exactly three letters, e.g. VXH.",
+      "crs_not_found": "Could not find the CRS code for this station automatically. Please enter it (look it up at {crs_lookup_url})."
     },
     "step": {
       "init": {
@@ -65,14 +82,18 @@
         "title": "Add stop — station",
         "description": "Select the station and configure how many departures to show.",
         "data_description": {
-          "nr_api_key": "This line is not supported by the TfL API and requires a Darwin token to show departure times.\nRegister at {registration_url} and request access to **Live Departure Boards (Darwin)**. Paste the token here."
+          "nr_api_key": "Optional. Token for the deprecated Darwin OpenLDBWS service ({legacy_registration_url}). Used on its own if no Rail Data Marketplace key is set, otherwise only as a fallback if the Rail Data Marketplace request fails.",
+          "rdm_api_key": "This line is not supported by the TfL API and requires a Rail Data Marketplace API key to show departure times.\nRegister at {registration_url}, subscribe to **Live Departure Board** and paste the product's API key here. You can reuse the key for multiple stops.",
+          "crs": "Optional. Three-letter National Rail station code (e.g. VXH). Leave blank to detect it automatically."
         },
         "data": {
           "station": "Station",
           "max": "Maximum number of departures to report",
           "platform": "Filter by platform (leave blank for all)",
           "shortenStationNames": "Shorten station names?",
-          "nr_api_key": "Your Darwin/Live Departure Boards token"
+          "nr_api_key": "Legacy Darwin/Live Departure Boards token",
+          "rdm_api_key": "Rail Data Marketplace API key",
+          "crs": "Station CRS code"
         }
       },
       "edit_stop": {
@@ -89,7 +110,14 @@
           "max": "Maximum number of departures to report",
           "platform": "Filter by platform (leave blank for all)",
           "shortenStationNames": "Shorten station names?",
-          "nr_api_key": "Your Darwin/Live Departure Boards token"
+          "nr_api_key": "Legacy Darwin/Live Departure Boards token",
+          "rdm_api_key": "Rail Data Marketplace API key",
+          "crs": "Station CRS code"
+        },
+        "data_description": {
+          "rdm_api_key": "This line is not supported by the TfL API and requires a Rail Data Marketplace API key to show departure times.\nRegister at {registration_url}, subscribe to **Live Departure Board** and paste the product's API key here. You can reuse the key for multiple stops.",
+          "nr_api_key": "Optional. Token for the deprecated Darwin OpenLDBWS service ({legacy_registration_url}). Used on its own if no Rail Data Marketplace key is set, otherwise only as a fallback if the Rail Data Marketplace request fails.",
+          "crs": "Optional. Three-letter National Rail station code (e.g. VXH). Leave blank to detect it automatically."
         }
       },
       "remove_stop": {
