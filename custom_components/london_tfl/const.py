@@ -72,6 +72,7 @@ TFL_NR_LINE_TO_TOC = {
     "merseyrail": "ME",
     "island-line": "IL",
     "lumo": "LD",
+    "thameslink": "TL",
 }
 
 NR_REGISTRATION_URL = "https://raildata.org.uk"

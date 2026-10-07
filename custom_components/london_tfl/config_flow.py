@@ -60,8 +60,13 @@ _DESCRIPTION_PLACEHOLDERS = {
 
 
 def _needs_nr_keys(method: str, line_csv: str) -> bool:
-    """National Rail lines (except Thameslink, served by TfL) need LDBWS credentials."""
-    return method == "national-rail" and "thameslink" not in line_csv.split(",")
+    """National Rail stops need LDBWS credentials.
+
+    The only exception is a stop covering Thameslink alone, which TfL's own
+    arrivals API serves. Any other selection, including Thameslink mixed with
+    other lines, is fetched from LDBWS (see TfLData._method_property).
+    """
+    return method == "national-rail" and line_csv != "thameslink"
 
 
 def _nr_fields(stops: list[dict[str, Any]]) -> dict:

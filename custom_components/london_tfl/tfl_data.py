@@ -153,16 +153,19 @@ class TfLData:
                 _LOGGER.exception("Unexpected error fetching National Rail departures for %s", self.station)
                 return "National Rail fetch error"
 
-        toc = TFL_NR_LINE_TO_TOC.get(self.line)
-        if toc:
-            filtered = [e.convert() for e in result if e.operator_code == toc]
-        else:
-            filtered = [e.convert() for e in result if e.operator_id == self.line]
+        # A stop may cover several comma-separated lines; keep trains run by any of them.
+        line_ids = self.line.split(",")
+        tocs = {TFL_NR_LINE_TO_TOC[line] for line in line_ids if line in TFL_NR_LINE_TO_TOC}
+        filtered = [
+            e.convert()
+            for e in result
+            if e.operator_code in tocs or e.operator_id in line_ids
+        ]
 
         if not filtered and result:
             _LOGGER.warning(
-                "No departures matched operator filter for line %r (TOC=%r); returning all %d trains",
-                self.line, toc, len(result),
+                "No departures matched operator filter for line %r (TOCs=%r); returning all %d trains",
+                self.line, sorted(tocs), len(result),
             )
             filtered = [e.convert() for e in result]
 

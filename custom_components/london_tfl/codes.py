@@ -16,6 +16,7 @@ aggregation bug. Each letter page is fetched once and cached for the process
 lifetime.
 """
 
+import asyncio
 import html.parser
 import json
 import logging
@@ -87,32 +88,63 @@ def normalise_station_name(name: str) -> str:
 
 _crs_codes: CrsCodes | None = None
 _crs_codes_loaded_at: float = 0.0
+# After a failed fetch, don't retry for a while: callers (config flow steps and
+# every National Rail sensor) would otherwise each wait out the full timeout
+# while crs.codes is unreachable, before falling back to other lookups.
+_CRS_CODES_RETRY_AFTER = 15 * 60
+_crs_codes_failed_at: float | None = None
+_crs_codes_lock = asyncio.Lock()
 
 
 async def load_crs_codes() -> CrsCodes | None:
-    """Fetch (or return the cached) crs.codes station list. Returns None on failure."""
-    global _crs_codes, _crs_codes_loaded_at
-    if _crs_codes is not None and time.monotonic() - _crs_codes_loaded_at < _CRS_CODES_TTL:
+    """Fetch (or return the cached) crs.codes station list.
+
+    Returns the last good list (possibly stale) or None if it can't be fetched.
+    Concurrent callers share a single in-flight request.
+    """
+    if _crs_codes_usable():
         return _crs_codes
+    async with _crs_codes_lock:
+        # Another caller may have finished (or failed) the fetch while we waited.
+        if _crs_codes_usable():
+            return _crs_codes
+        return await _fetch_crs_codes()
+
+
+def _crs_codes_usable() -> bool:
+    now = time.monotonic()
+    if _crs_codes is not None and now - _crs_codes_loaded_at < _CRS_CODES_TTL:
+        return True
+    return (
+        _crs_codes_failed_at is not None
+        and now - _crs_codes_failed_at < _CRS_CODES_RETRY_AFTER
+    )
+
+
+async def _fetch_crs_codes() -> CrsCodes | None:
+    global _crs_codes, _crs_codes_loaded_at, _crs_codes_failed_at
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 _CRS_CODES_URL,
                 headers={"User-Agent": _USER_AGENT, "Accept": "application/json"},
-                timeout=aiohttp.ClientTimeout(total=30),
+                timeout=aiohttp.ClientTimeout(total=15, sock_connect=5),
             ) as resp:
                 if resp.status != 200:
-                    _LOGGER.warning("crs.codes returned HTTP %s", resp.status)
-                    return _crs_codes
+                    raise ValueError(f"HTTP {resp.status}")
                 stations = await resp.json(content_type=None)
+        if not isinstance(stations, list):
+            raise ValueError("unexpected station list format")
     except Exception as e:
-        _LOGGER.warning("Failed to fetch station list from crs.codes: %s", e)
-        return _crs_codes
-    if not isinstance(stations, list):
-        _LOGGER.warning("Unexpected station list format from crs.codes")
+        _crs_codes_failed_at = time.monotonic()
+        _LOGGER.warning(
+            "Failed to fetch station list from crs.codes (%s), retrying in %d minutes: %s",
+            type(e).__name__, _CRS_CODES_RETRY_AFTER // 60, e,
+        )
         return _crs_codes
     _crs_codes = CrsCodes(stations)
     _crs_codes_loaded_at = time.monotonic()
+    _crs_codes_failed_at = None
     _LOGGER.debug("Loaded %d TIPLOC→CRS entries from crs.codes", len(_crs_codes.by_tiploc))
     return _crs_codes
 
