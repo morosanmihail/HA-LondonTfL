@@ -22,7 +22,10 @@ Alternatively, you can manually drop it into your `custom_components` folder.
 You can add integration via the Integrations menu by searching for `London TfL`.
 It will auto-populate the line list, then auto-populate the station list with all stations on that line.
 It will allow you to add as many stations as needed.
-The expected format for the platform filter is to use the full name of the platform (most often similar to `Platform 3`).
+After picking a station you can optionally filter to a single platform. The dropdown lists the platforms TfL is currently
+reporting departures for at that station; if yours isn't listed (e.g. nothing is due there right now) you can type it in.
+The filter matches on the platform name as TfL reports it, with the `Platform ` prefix removed — e.g. `Eastbound - 2` or `14`.
+For bus stops the "platform" is the route number.
 
 To follow one direction of a station on the Underground, set the platform filter to part of the platform name shown in the sensor's `platform` attribute (for example `Westbound`). A stop with a platform filter is named `Station (filter)` and its entity id includes the filter, so the two directions of the same station and line get different, stable names. Without a filter the name is `Station to <destination of the next train>` and covers every platform.
 

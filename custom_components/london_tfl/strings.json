@@ -29,7 +29,6 @@
           "nr_api_key": "Legacy Darwin/Live Departure Boards token",
           "station": "TfL Station",
           "max": "Maximum number of departures to report",
-          "platform": "Filter by platform",
           "add_another": "Add another station?",
           "shortenStationNames": "Shorten station names?",
           "rdm_api_key": "Rail Data Marketplace API key",
@@ -42,6 +41,13 @@
           "crs": "Optional. Three-letter National Rail station code (e.g. VXH). Leave blank to detect it automatically."
         },
         "title": "Station"
+      },
+      "platform": {
+        "title": "Platform",
+        "description": "Choose which platform at {stop_name} to show departures for, or leave blank for all platforms.\n\nThe list is built from the departures TfL is reporting right now ({platform_count} platform(s) found). If the platform you want isn't listed — for example because nothing is due there at the moment — you can type it in; the filter matches on the platform name as TfL reports it, with the \"Platform \" prefix removed (e.g. \"Eastbound - 2\" or \"14\"). For bus stops this is the route number.",
+        "data": {
+          "platform": "Platform"
+        }
       }
     }
   },
@@ -89,11 +95,17 @@
         "data": {
           "station": "Station",
           "max": "Maximum number of departures to report",
-          "platform": "Filter by platform (leave blank for all)",
           "shortenStationNames": "Shorten station names?",
           "nr_api_key": "Legacy Darwin/Live Departure Boards token",
           "rdm_api_key": "Rail Data Marketplace API key",
           "crs": "Station CRS code"
+        }
+      },
+      "add_platform": {
+        "title": "Add stop — platform",
+        "description": "Choose which platform at {stop_name} to show departures for, or leave blank for all platforms.\n\nThe list is built from the departures TfL is reporting right now ({platform_count} platform(s) found). If the platform you want isn't listed — for example because nothing is due there at the moment — you can type it in; the filter matches on the platform name as TfL reports it, with the \"Platform \" prefix removed (e.g. \"Eastbound - 2\" or \"14\"). For bus stops this is the route number.",
+        "data": {
+          "platform": "Platform"
         }
       },
       "edit_stop": {
@@ -117,7 +129,8 @@
         "data_description": {
           "rdm_api_key": "This line is not supported by the TfL API and requires a Rail Data Marketplace API key to show departure times.\nRegister at {registration_url}, subscribe to **Live Departure Board** and paste the product's API key here. You can reuse the key for multiple stops.",
           "nr_api_key": "Optional. Token for the deprecated Darwin OpenLDBWS service ({legacy_registration_url}). Used on its own if no Rail Data Marketplace key is set, otherwise only as a fallback if the Rail Data Marketplace request fails.",
-          "crs": "Optional. Three-letter National Rail station code (e.g. VXH). Leave blank to detect it automatically."
+          "crs": "Optional. Three-letter National Rail station code (e.g. VXH). Leave blank to detect it automatically.",
+          "platform": "Pick from the platforms currently reporting departures ({platform_count} found), or type a platform name as TfL reports it with the \"Platform \" prefix removed (e.g. \"Eastbound - 2\" or \"14\")."
         }
       },
       "remove_stop": {

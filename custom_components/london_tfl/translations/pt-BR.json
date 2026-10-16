@@ -29,7 +29,6 @@
           "nr_api_key": "Token legado do Darwin/Live Departure Boards",
           "station": "Estação TfL",
           "max": "Número máximo de partidas a relatar",
-          "platform": "Filtrar por plataforma",
           "add_another": "Adicionar outra estação?",
           "shortenStationNames": "Encurtar nomes de estações?",
           "rdm_api_key": "Chave de API do Rail Data Marketplace",
@@ -42,6 +41,13 @@
           "crs": "Opcional. Código de estação da National Rail com três letras (ex.: VXH). Deixe em branco para detectar automaticamente."
         },
         "title": "Estação"
+      },
+      "platform": {
+        "title": "Plataforma",
+        "description": "Escolha de qual plataforma de {stop_name} mostrar as partidas, ou deixe em branco para todas.\n\nA lista é montada a partir das partidas que a TfL está reportando agora ({platform_count} plataforma(s) encontrada(s)). Se a plataforma desejada não aparecer — por exemplo, porque nada está previsto nela no momento — você pode digitá-la; o filtro compara com o nome da plataforma conforme reportado pela TfL, sem o prefixo \"Platform \" (ex.: \"Eastbound - 2\" ou \"14\"). Para pontos de ônibus, é o número da linha.",
+        "data": {
+          "platform": "Plataforma"
+        }
       }
     }
   },
@@ -89,11 +95,17 @@
         "data": {
           "station": "Estação",
           "max": "Número máximo de partidas a relatar",
-          "platform": "Filtrar por plataforma (deixe em branco para todas)",
           "shortenStationNames": "Encurtar nomes de estações?",
           "rdm_api_key": "Chave de API do Rail Data Marketplace",
           "nr_api_key": "Token legado do Darwin/Live Departure Boards",
           "crs": "Código CRS da estação"
+        }
+      },
+      "add_platform": {
+        "title": "Adicionar parada — plataforma",
+        "description": "Escolha de qual plataforma de {stop_name} mostrar as partidas, ou deixe em branco para todas.\n\nA lista é montada a partir das partidas que a TfL está reportando agora ({platform_count} plataforma(s) encontrada(s)). Se a plataforma desejada não aparecer — por exemplo, porque nada está previsto nela no momento — você pode digitá-la; o filtro compara com o nome da plataforma conforme reportado pela TfL, sem o prefixo \"Platform \" (ex.: \"Eastbound - 2\" ou \"14\"). Para pontos de ônibus, é o número da linha.",
+        "data": {
+          "platform": "Plataforma"
         }
       },
       "edit_stop": {
@@ -117,7 +129,8 @@
         "data_description": {
           "rdm_api_key": "Esta linha não é suportada pela API da TfL e requer uma chave de API do Rail Data Marketplace para exibir os horários de partida.\nCadastre-se em {registration_url}, assine o produto **Live Departure Board** e cole a chave de API do produto aqui. Você pode reutilizar a chave em várias paradas.",
           "nr_api_key": "Opcional. Token do serviço Darwin OpenLDBWS, descontinuado ({legacy_registration_url}). Usado sozinho se nenhuma chave do Rail Data Marketplace for informada; caso contrário, apenas como alternativa se a requisição ao Rail Data Marketplace falhar.",
-          "crs": "Opcional. Código de estação da National Rail com três letras (ex.: VXH). Deixe em branco para detectar automaticamente."
+          "crs": "Opcional. Código de estação da National Rail com três letras (ex.: VXH). Deixe em branco para detectar automaticamente.",
+          "platform": "Escolha entre as plataformas que estão reportando partidas agora ({platform_count} encontrada(s)), ou digite o nome da plataforma conforme reportado pela TfL, sem o prefixo \"Platform \" (ex.: \"Eastbound - 2\" ou \"14\")."
         }
       },
       "remove_stop": {
