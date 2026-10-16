@@ -24,6 +24,8 @@ It will auto-populate the line list, then auto-populate the station list with al
 It will allow you to add as many stations as needed.
 The expected format for the platform filter is to use the full name of the platform (most often similar to `Platform 3`).
 
+To follow one direction of a station on the Underground, set the platform filter to part of the platform name shown in the sensor's `platform` attribute (for example `Westbound`). A stop with a platform filter is named `Station (filter)` and its entity id includes the filter, so the two directions of the same station and line get different, stable names. Without a filter the name is `Station to <destination of the next train>` and covers every platform.
+
 Sensor state is the next train departure time from the given station and platform (if set).
 Attributes contain up to `max` departures.
 
