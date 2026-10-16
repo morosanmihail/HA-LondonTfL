@@ -181,12 +181,15 @@ class LondonTfLSensor(SensorEntity):
         """Initialize the sensor."""
         self._platformname = name
         mode_suffix = "" if departure_mode == "realtime" else ("_" + departure_mode)
-        self._name = name + "_" + line + "_" + station + mode_suffix
-        self.entity_id = "sensor." + slugify(self._name)
         self.method = method
         self.line = line
         self.station = station
         self.filter_platform = platform_filter.strip() if platform_filter else ""
+        # The platform filter (usually a direction such as "Westbound") is part of the entity id, so two stops at the same
+        # station and line that differ only by direction do not share an id.
+        filter_part = "_" + self.filter_platform if self.filter_platform else ""
+        self._name = name + "_" + line + "_" + station + filter_part + mode_suffix
+        self.entity_id = "sensor." + slugify(self._name)
         self.max_items = int(max)
         self._shorten_station_names = shortenStationNames
         self.departure_mode = departure_mode
@@ -217,6 +220,11 @@ class LondonTfLSensor(SensorEntity):
             "all": " (All)",
         }.get(self.departure_mode, "")
 
+        # A stop with a platform filter is one direction: name it after the filter ("Wood Green (Westbound)"), which is
+        # stable. The destination of the next train changes from one refresh to the next and is the same for the opposite
+        # direction of a hub, so it cannot tell two stops apart.
+        if self.filter_platform and station:
+            return "{0} ({1}){2}".format(station, self.filter_platform, mode_suffix)
         if destination and station:
             return "{0} to {1}{2}".format(station, destination, mode_suffix)
         if station:
