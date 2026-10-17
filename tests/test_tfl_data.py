@@ -579,3 +579,44 @@ class TestExpectedArrivalFallback:
         tfl.sort_data(5)
         # Should not raise, even though get_state() parses the expected arrival.
         assert tfl.get_state() == "None" or isinstance(tfl.get_state(), str)
+
+
+class TestPlatformNames:
+    def test_underground_platforms_are_distinct_and_stripped(self, raw_underground: list) -> None:
+        tfl = TfLData(method="tube", line="jubilee", station="Stratford Underground Station")
+        # Same form filter_by_platform matches against: "Platform " prefix removed.
+        assert tfl.platform_names(raw_underground) == [
+            "Westbound - 13",
+            "Westbound - 14",
+            "Westbound - 15",
+        ]
+
+    def test_every_platform_name_is_a_working_filter(self, raw_underground: list) -> None:
+        tfl = TfLData(method="tube", line="jubilee", station="Stratford Underground Station")
+        for name in tfl.platform_names(raw_underground):
+            filtered = TfLData(method="tube", line="jubilee", station="Stratford Underground Station")
+            filtered.populate(raw_underground, filter_platform=name)
+            assert filtered._raw_result, f"filter {name!r} matched nothing"
+
+    def test_bus_platform_names_are_route_numbers(self, raw_bus: list) -> None:
+        tfl = TfLData(method="bus", line="241", station="Mill Road")
+        names = tfl.platform_names(raw_bus)
+        assert names
+        assert names == sorted({item["lineName"] for item in raw_bus}, key=lambda s: (len(s), s))
+
+    def test_uses_last_fetched_data_when_no_argument(self, raw_underground: list) -> None:
+        tfl = TfLData(method="tube", line="jubilee", station="Stratford Underground Station")
+        tfl.populate(raw_underground, filter_platform="14")
+        assert tfl.platform_names() == ["Westbound - 14"]
+
+    def test_natural_sort_and_blank_names_dropped(self) -> None:
+        tfl = TfLData(method="tube", line="northern", station="x")
+        items = [
+            {"platformName": "Platform 10"},
+            {"platformName": "Platform 2"},
+            {"platformName": ""},
+            {},
+            {"platformName": "Southbound - Platform 1"},
+            {"platformName": "Platform 2"},
+        ]
+        assert tfl.platform_names(items) == ["2", "10", "Southbound - 1"]

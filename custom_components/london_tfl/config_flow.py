@@ -30,6 +30,7 @@ from .const import (
 )
 from .codes import atco_to_crs, is_valid_crs, load_crs_codes
 from .network import request
+from .tfl_data import TfLData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -115,6 +116,61 @@ async def _resolve_nr_stop(
             errors[CONF_CRS] = "crs_not_found"
 
     return {CONF_RDM_API_KEY: rdm_key, CONF_NR_API_KEY: nr_key, CONF_CRS: crs or None}, errors
+
+
+async def _fetch_platforms(hass, stop: dict[str, Any]) -> list[str]:
+    """Return the platform names currently seen in live arrivals for a stop.
+
+    TfL has no endpoint that lists a station's platforms by name — the only
+    source of the strings the platform filter matches against (e.g.
+    "Eastbound - 2", "14", or a bus route number) is the arrivals feed. So
+    this is best-effort: a station with no arrivals right now returns an
+    empty list, and the caller must still allow a free-text value.
+    """
+    try:
+        data = TfLData(
+            method=stop[CONF_METHOD],
+            line=stop[CONF_LINE],
+            station=stop[CONF_STATION],
+            nr_api_key=stop.get(CONF_NR_API_KEY),
+            rdm_api_key=stop.get(CONF_RDM_API_KEY),
+            crs=stop.get(CONF_CRS),
+        )
+        result = await data.fetch(hass)
+    except Exception:
+        _LOGGER.warning(
+            "Failed to fetch platforms for %s", stop.get(CONF_STATION), exc_info=True
+        )
+        return []
+    if not isinstance(result, list):
+        _LOGGER.debug("No arrivals to derive platforms from: %s", result)
+        return []
+    return data.platform_names(result)
+
+
+def _platform_schema(platforms: list[str], current: str = "") -> vol.Schema:
+    """Platform filter field: a dropdown of known platforms that also accepts typing."""
+    options = list(platforms)
+    if current and current not in options:
+        options.insert(0, current)
+    if options:
+        field = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=options,
+                custom_value=True,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        )
+    else:
+        field = cv.string
+    return vol.Schema(
+        {vol.Optional(CONF_PLATFORM, description={"suggested_value": current}): field}
+    )
+
+
+def _platform_value(user_input: dict[str, Any]) -> str:
+    """Normalise the submitted platform filter (unset/None → "")."""
+    return (user_input.get(CONF_PLATFORM) or "").strip()
 
 
 def _direction_text(item: dict) -> str:
@@ -219,6 +275,9 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # used to resolve a friendly name on submit (kept off self.data since
         # that dict is persisted verbatim as the config entry's data).
         self._current_stations: dict[str, StationOption] = {}
+        # Stop collected on the station step, awaiting its platform choice.
+        self._pending_stop: dict[str, Any] = {}
+        self._pending_add_another = False
 
     @staticmethod
     @callback
@@ -294,29 +353,23 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
 
         if user_input is not None and not errors:
-            self.data[CONF_STOPS].append(
-                {
-                    CONF_LINE: self.data["lastLine"],
-                    CONF_METHOD: self.data["lastMethod"],
-                    **nr_data,
-                    CONF_STATION: station_id,
-                    CONF_MAX: user_input[CONF_MAX],
-                    CONF_PLATFORM: user_input[CONF_PLATFORM],
-                    CONF_SHORTEN_STATION_NAMES: user_input[CONF_SHORTEN_STATION_NAMES],
-                    # Store display name so it survives without a fresh API call
-                    # (used for both the entry title below and the options-flow
-                    # edit/remove menu's stop labels).
-                    "station_display_name": station_option.display_name if station_option else station_id,
-                }
-            )
-            if user_input.get("add_another", False):
-                return await self.async_step_user()
-
-            title = ", ".join(
-                stop.get("station_display_name") or stop[CONF_STATION]
-                for stop in self.data[CONF_STOPS]
-            )
-            return self.async_create_entry(title=title, data=self.data)
+            # The platform filter is chosen on the next step, once we know the
+            # station and can look up which platforms it actually has.
+            self._pending_stop = {
+                CONF_LINE: self.data["lastLine"],
+                CONF_METHOD: self.data["lastMethod"],
+                **nr_data,
+                CONF_STATION: station_id,
+                CONF_MAX: user_input[CONF_MAX],
+                CONF_PLATFORM: "",
+                CONF_SHORTEN_STATION_NAMES: user_input[CONF_SHORTEN_STATION_NAMES],
+                # Store display name so it survives without a fresh API call
+                # (used for both the entry title below and the options-flow
+                # edit/remove menu's stop labels).
+                "station_display_name": station_option.display_name if station_option else station_id,
+            }
+            self._pending_add_another = bool(user_input.get("add_another", False))
+            return await self.async_step_platform()
 
         # Reuse the station list when re-showing the form after a validation error.
         if user_input is None or not self._current_stations:
@@ -338,7 +391,6 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
                 vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
-                vol.Optional(CONF_PLATFORM, default=""): cv.string,
                 vol.Optional("add_another", default=False): cv.boolean,
             }
         )
@@ -350,6 +402,32 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=data_schema,
             errors=errors,
             description_placeholders=_DESCRIPTION_PLACEHOLDERS,
+        )
+
+    async def async_step_platform(self, user_input: dict[str, Any] | None = None):
+        """Pick a platform filter from the platforms the station currently reports."""
+        if user_input is not None:
+            self._pending_stop[CONF_PLATFORM] = _platform_value(user_input)
+            self.data[CONF_STOPS].append(self._pending_stop)
+            self._pending_stop = {}
+            if self._pending_add_another:
+                self._pending_add_another = False
+                return await self.async_step_user()
+
+            title = ", ".join(
+                stop.get("station_display_name") or stop[CONF_STATION]
+                for stop in self.data[CONF_STOPS]
+            )
+            return self.async_create_entry(title=title, data=self.data)
+
+        platforms = await _fetch_platforms(self.hass, self._pending_stop)
+        return self.async_show_form(
+            step_id="platform",
+            data_schema=_platform_schema(platforms),
+            description_placeholders={
+                "stop_name": self._pending_stop.get("station_display_name", ""),
+                "platform_count": str(len(platforms)),
+            },
         )
 
 
@@ -369,6 +447,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._editing_index: int | None = None
         # Cached station map populated when showing the add-station form.
         self._current_stations: dict[str, StationOption] = {}
+        # Stop collected on the add-station step, awaiting its platform choice.
+        self._pending_stop: dict[str, Any] = {}
 
     def _stop_label(self, stop: dict[str, Any]) -> str:
         """Return a human-readable label for a stop."""
@@ -464,24 +544,23 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 )
 
         if user_input is not None and not errors:
-            self._stops.append(
-                {
-                    CONF_LINE: self._last_line,
-                    CONF_METHOD: self._last_method,
-                    **nr_data,
-                    CONF_STATION: user_input[CONF_STATION],
-                    CONF_MAX: user_input[CONF_MAX],
-                    CONF_PLATFORM: user_input[CONF_PLATFORM],
-                    CONF_SHORTEN_STATION_NAMES: user_input[CONF_SHORTEN_STATION_NAMES],
-                    # Store display name so the edit/remove UI shows it without an API call.
-                    "station_display_name": (
-                        self._current_stations[user_input[CONF_STATION]].display_name
-                        if user_input[CONF_STATION] in self._current_stations
-                        else ""
-                    ),
-                }
-            )
-            return self._save()
+            # Platform filter is picked on the next step, from live platform names.
+            self._pending_stop = {
+                CONF_LINE: self._last_line,
+                CONF_METHOD: self._last_method,
+                **nr_data,
+                CONF_STATION: user_input[CONF_STATION],
+                CONF_MAX: user_input[CONF_MAX],
+                CONF_PLATFORM: "",
+                CONF_SHORTEN_STATION_NAMES: user_input[CONF_SHORTEN_STATION_NAMES],
+                # Store display name so the edit/remove UI shows it without an API call.
+                "station_display_name": (
+                    self._current_stations[user_input[CONF_STATION]].display_name
+                    if user_input[CONF_STATION] in self._current_stations
+                    else ""
+                ),
+            }
+            return await self.async_step_add_platform()
 
         # Reuse the station list when re-showing the form after a validation error.
         if user_input is None or not self._current_stations:
@@ -503,7 +582,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ),
                 vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
                 vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
-                vol.Optional(CONF_PLATFORM, default=""): cv.string,
             }
         )
         if user_input is not None:
@@ -514,6 +592,24 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=data_schema,
             errors=errors,
             description_placeholders=_DESCRIPTION_PLACEHOLDERS,
+        )
+
+    async def async_step_add_platform(self, user_input: dict[str, Any] | None = None):
+        """Step 4 of adding a stop: pick a platform filter from live platform names."""
+        if user_input is not None:
+            self._pending_stop[CONF_PLATFORM] = _platform_value(user_input)
+            self._stops.append(self._pending_stop)
+            self._pending_stop = {}
+            return self._save()
+
+        platforms = await _fetch_platforms(self.hass, self._pending_stop)
+        return self.async_show_form(
+            step_id="add_platform",
+            data_schema=_platform_schema(platforms),
+            description_placeholders={
+                "stop_name": self._stop_label(self._pending_stop),
+                "platform_count": str(len(platforms)),
+            },
         )
 
     # ── Edit stop ─────────────────────────────────────────────────────────────
@@ -563,7 +659,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 **stop,
                 **nr_data,
                 CONF_MAX: user_input[CONF_MAX],
-                CONF_PLATFORM: user_input[CONF_PLATFORM],
+                CONF_PLATFORM: _platform_value(user_input),
                 CONF_SHORTEN_STATION_NAMES: user_input[CONF_SHORTEN_STATION_NAMES],
             }
             return self._save()
@@ -575,12 +671,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Optional(key, description={"suggested_value": stop.get(key)})
                 ] = cv.string
 
+        # Offer the platforms the station currently reports (keeping whatever
+        # is configured, even if it isn't among them right now).
+        platforms = await _fetch_platforms(self.hass, stop)
+        platform_field = _platform_schema(platforms, stop.get(CONF_PLATFORM, "")).schema
+
         return self.async_show_form(
             step_id="edit_station",
             errors=errors,
             description_placeholders={
                 **_DESCRIPTION_PLACEHOLDERS,
                 "stop_name": self._stop_label(stop),
+                "platform_count": str(len(platforms)),
             },
             data_schema=vol.Schema(
                 {
@@ -592,9 +694,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_MAX, default=stop.get(CONF_MAX, DEFAULT_MAX)
                     ): cv.positive_int,
-                    vol.Optional(
-                        CONF_PLATFORM, default=stop.get(CONF_PLATFORM, "")
-                    ): cv.string,
+                    **platform_field,
                 }
             ),
         )

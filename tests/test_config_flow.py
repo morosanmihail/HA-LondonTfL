@@ -4,7 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from custom_components.london_tfl.config_flow import _direction_text, _fetch_stations
+from custom_components.london_tfl.config_flow import (
+    _direction_text,
+    _fetch_platforms,
+    _fetch_stations,
+    _platform_schema,
+    _platform_value,
+)
+from custom_components.london_tfl.tfl_data import TfLData
 
 FIXTURES = Path(__file__).parent.parent / "custom_components" / "london_tfl" / "test"
 
@@ -192,3 +199,73 @@ class TestFetchStationsErrorHandling:
         )
         stations = await _fetch_stations("bus", "15,115")
         assert set(stations) == {x["id"] for x in FIXTURE_BY_LINE["115"]}
+
+
+class TestFetchPlatforms:
+    """_fetch_platforms derives the platform dropdown from live arrivals."""
+
+    STOP = {"method": "tube", "line": "jubilee", "station": "940GZZLUSTD"}
+
+    async def test_returns_platform_names_from_arrivals(self, monkeypatch) -> None:
+        arrivals = _load("underground.json")
+
+        async def fake_fetch(self, hass):
+            return arrivals
+
+        monkeypatch.setattr(TfLData, "fetch", fake_fetch)
+        assert await _fetch_platforms(None, self.STOP) == [
+            "Westbound - 13",
+            "Westbound - 14",
+            "Westbound - 15",
+        ]
+
+    async def test_error_string_from_fetch_gives_empty_list(self, monkeypatch) -> None:
+        async def fake_fetch(self, hass):
+            return "Cannot reach TfL"
+
+        monkeypatch.setattr(TfLData, "fetch", fake_fetch)
+        assert await _fetch_platforms(None, self.STOP) == []
+
+    async def test_exception_during_fetch_gives_empty_list(self, monkeypatch) -> None:
+        async def fake_fetch(self, hass):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(TfLData, "fetch", fake_fetch)
+        assert await _fetch_platforms(None, self.STOP) == []
+
+    async def test_passes_national_rail_credentials_through(self, monkeypatch) -> None:
+        seen = {}
+
+        async def fake_fetch(self, hass):
+            seen["rdm"] = self.rdm_api_key
+            seen["crs"] = self.crs
+            return []
+
+        monkeypatch.setattr(TfLData, "fetch", fake_fetch)
+        stop = {**self.STOP, "method": "national-rail", "rdm_api_key": "k", "crs": "vxh"}
+        assert await _fetch_platforms(None, stop) == []
+        assert seen == {"rdm": "k", "crs": "VXH"}
+
+
+class TestPlatformSchema:
+    def test_dropdown_offers_platforms_and_accepts_custom_values(self) -> None:
+        schema = _platform_schema(["Eastbound - 2", "Westbound - 1"])
+        assert schema({"platform": "Eastbound - 2"}) == {"platform": "Eastbound - 2"}
+        # custom_value=True: a typed value not in the list is still accepted.
+        assert schema({"platform": "Northbound - 4"}) == {"platform": "Northbound - 4"}
+        assert schema({}) == {}
+
+    def test_current_value_is_kept_in_options(self) -> None:
+        schema = _platform_schema(["1", "2"], current="3")
+        field = next(iter(schema.schema.values()))
+        assert field.config["options"] == ["3", "1", "2"]
+
+    def test_falls_back_to_free_text_when_no_platforms(self) -> None:
+        schema = _platform_schema([])
+        assert schema({"platform": "14"}) == {"platform": "14"}
+        assert schema({}) == {}
+
+    def test_platform_value_normalises_blank(self) -> None:
+        assert _platform_value({}) == ""
+        assert _platform_value({"platform": None}) == ""
+        assert _platform_value({"platform": "  14 "}) == "14"

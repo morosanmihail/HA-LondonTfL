@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import uuid
 from datetime import datetime, timedelta, UTC
 from dateutil import parser
@@ -35,6 +36,14 @@ def get_destination(entry, use_destination_name=False):
 
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _natural_sort_key(value: str):
+    """Sort key that orders embedded numbers numerically ("2" < "10")."""
+    return [
+        int(part) if part.isdigit() else part.lower()
+        for part in re.split(r"(\d+)", value)
+    ]
 
 
 def time_to_station(entry, arrival, with_destination=True, style="{0}m {1}s"):
@@ -313,6 +322,18 @@ class TfLData:
                 for item in self._raw_result
                 if filter_platform in self._get_platform_name(item)
             ]
+
+    def platform_names(self, json_data=None) -> list[str]:
+        """Distinct platform names present in the given (or last fetched) data.
+
+        Names are in the same form that filter_by_platform matches against
+        (i.e. with any "Platform " prefix removed), so any returned value is
+        a valid platform filter. Sorted naturally so "2" comes before "10".
+        """
+        items = self._raw_result if json_data is None else json_data
+        names = {self._get_platform_name(item) for item in items}
+        names.discard("")
+        return sorted(names, key=_natural_sort_key)
 
     def sort_data(self, max_items):
         sorted_result = sorted(
