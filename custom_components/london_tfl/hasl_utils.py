@@ -40,10 +40,13 @@ class Departure(TypedDict):
     current_location: NotRequired[str]
 
 
-def as_hasl_departures(departures: list[dict]) -> list[Departure]:
+def as_hasl_departures(departures: list[dict], planned_marker: str = "") -> list[Departure]:
     """
     converts the list of departures into a format
     that HASL Departure card (3.2.0+) can understand
+
+    planned_marker, if given, is put in front of the destination of trains that come from the timetable only
+    (prediction_type "scheduled"), so a card that only prints the destination can still tell them from live ones
 
     the format can be found [here](https://github.com/hasl-sensor/lovelace-hasl-departure-card/blob/master/src/models.ts)
     """
@@ -51,7 +54,11 @@ def as_hasl_departures(departures: list[dict]) -> list[Departure]:
     result = []
     for dep in departures:
         entry: Departure = {
-            "destination": dep["destination"],
+            "destination": (
+                planned_marker + dep["destination"]
+                if planned_marker and dep.get("prediction_type") == "scheduled"
+                else dep["destination"]
+            ),
             "deviations": None,
             "direction_code": 0,
             "line": {

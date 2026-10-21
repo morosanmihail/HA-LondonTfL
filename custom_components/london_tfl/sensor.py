@@ -30,6 +30,7 @@ from .const import (
     DEFAULT_MAX,
     DEFAULT_NAME,
     DOMAIN,
+    PLANNED_DEPARTURE_MARKER,
     CONF_SHORTEN_STATION_NAMES,
     get_line_image,
     shortenName,
@@ -276,7 +277,7 @@ class LondonTfLSensor(SensorEntity):
             return attributes
 
         departures = self._departures
-        attributes["departures"] = as_hasl_departures(departures)
+        attributes["departures"] = as_hasl_departures(departures, PLANNED_DEPARTURE_MARKER)
 
         data = [
             {

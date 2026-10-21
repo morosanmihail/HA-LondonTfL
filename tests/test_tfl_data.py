@@ -359,8 +359,8 @@ class TestTimetableMerging:
         tfl = TfLData(method="bus", line="241", station="490000000X")
         tfl.populate([_make_realtime_entry(5)], filter_platform="241")
         tfl.sort_data(5)
-        # 90 min is outside the 60-min window
-        tfl.set_timetable(_make_timetable("490000000X", [90]))
+        # 150 min is outside the 2-hour window
+        tfl.set_timetable(_make_timetable("490000000X", [150]))
         departures = tfl.get_departures()
         scheduled = [d for d in departures if d["prediction_type"] == "scheduled"]
         assert len(scheduled) == 0

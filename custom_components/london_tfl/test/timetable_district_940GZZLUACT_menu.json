@@ -1,0 +1,22 @@
+{
+ "disambiguation": {
+  "disambiguationOptions": [
+   {
+    "description": "Edgware Road (Circle Line) Underground Station - Ealing Broadway Underground Station",
+    "uri": "/Line/district/Timetable/940GZZLUACT?direction=inbound"
+   },
+   {
+    "description": "Ealing Broadway Underground Station - Edgware Road (Circle Line) Underground Station",
+    "uri": "/Line/district/Timetable/940GZZLUACT?direction=outbound"
+   },
+   {
+    "description": "Ealing Broadway Underground Station - Upminster Underground Station",
+    "uri": "/Line/district/Timetable/940GZZLUACT?direction=outbound"
+   },
+   {
+    "description": "Upminster Underground Station - Ealing Broadway Underground Station",
+    "uri": "/Line/district/Timetable/940GZZLUACT?direction=inbound"
+   }
+  ]
+ }
+}

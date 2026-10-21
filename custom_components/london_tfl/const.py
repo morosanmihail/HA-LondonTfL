@@ -26,6 +26,10 @@ DEFAULT_METHODS = [
 ]  # noqa
 DEFAULT_ICONS = {"bus": "mdi:bus", "tram": "mdi:tram", "default": "mdi:train"}
 
+# Shown in front of the destination on departure cards for trains that come from the timetable only (no live
+# prediction yet). A clock, U+1F552.
+PLANNED_DEPARTURE_MARKER = "\U0001F552 "
+
 LINE_IMAGES = {
     "default": "https://tfl.gov.uk/tfl/common/images/logos/London%20Underground/Roundel/LULRoundel.jpg",  # noqa
     "dlr": "https://tfl.gov.uk/tfl/common/images/logos/Docklands%20Light%20Railway/Roundel/DLRRoundel.jpg",  # noqa
@@ -41,6 +45,7 @@ TFL_ALT_ARRIVALS_URL = (
 )
 TFL_STATIONS_URL = "https://api.tfl.gov.uk/line/{0}/stoppoints"
 TFL_TIMETABLE_URL = "https://api.tfl.gov.uk/Line/{0}/Timetable/{1}"
+TFL_API_BASE = "https://api.tfl.gov.uk"
 USE_LDBWS_URL = "use-ldbws-purposefully-not-a-url"
 
 # Maps TfL national-rail line IDs to LDBWS two-letter TOC codes.
