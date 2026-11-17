@@ -225,10 +225,11 @@ class TestTfLDataUrl:
         url = tfl.url(station="910GSTPX")
         assert "StopPoint/910GSTPX/arrivaldepartures" in url
 
-    def test_elizabeth_line_uses_arrivals_url(self) -> None:
+    def test_elizabeth_line_uses_arrivaldepartures_url(self) -> None:
+        # The line arrivals feed leaves out trains starting at a terminus; arrivaldepartures includes them.
         tfl = TfLData(method="elizabeth-line", line="elizabeth", station="910GLIVST")
         url = tfl.url(station="910GLIVST")
-        assert "api.tfl.gov.uk/line/elizabeth/arrivals/910GLIVST" in url
+        assert "api.tfl.gov.uk/StopPoint/910GLIVST/arrivaldepartures/?lineIds=elizabeth" in url
 
 
 class TestTfLDataColours:
@@ -484,6 +485,81 @@ class TestFetch:
         tfl = TfLData(method="bus", line="241", station="490004222E")
         result = await tfl.fetch(None)
         assert isinstance(result, str)
+
+
+class TestTerminus:
+    """At a terminus TfL's line arrivals feed lists only the trains ending there, never those starting there.
+
+    The fixture is TfL's arrivaldepartures reply for the Elizabeth line at Abbey Wood: 19 departures towards
+    Reading/Heathrow/Maidenhead/Paddington and 17 trains terminating at Abbey Wood (arrival time only).
+    """
+
+    STATION = "910GABWDXR"
+
+    @pytest.fixture
+    def raw_abbey_wood(self) -> str:
+        return (FIXTURES / "arrivaldepartures_elizabeth_910GABWDXR.json").read_text()
+
+    async def _fetch(self, monkeypatch, body: str, **kwargs) -> tuple:
+        urls = []
+
+        async def fake_request(url):
+            urls.append(url)
+            return body
+
+        monkeypatch.setattr("custom_components.london_tfl.tfl_data.request", fake_request)
+        tfl = TfLData(**kwargs)
+        return tfl, await tfl.fetch(None), urls
+
+    async def test_elizabeth_terminus_shows_departures_not_arrivals(self, monkeypatch, raw_abbey_wood: str) -> None:
+        tfl, result, urls = await self._fetch(
+            monkeypatch, raw_abbey_wood, method="elizabeth-line", line="elizabeth", station=self.STATION
+        )
+        assert "/StopPoint/910GABWDXR/arrivaldepartures" in urls[0]
+        assert len(result) == 19
+        assert all(item["destinationNaptanId"] != self.STATION for item in result)
+
+        tfl.populate(result, filter_platform="")
+        tfl.sort_data(3)
+        departures = tfl.get_departures()
+        assert [d["destination"] for d in departures] == [
+            "Reading Rail Station", "Heathrow Terminal 4 Rail Station", "Reading Rail Station",
+        ]
+        assert departures[0]["expected"] == "2026-11-17T15:02:00Z"
+        assert departures[0]["platform"] == "3"
+        assert tfl.get_station_name() == "Abbey Wood"
+
+    async def test_elizabeth_platform_names_and_filter(self, monkeypatch, raw_abbey_wood: str) -> None:
+        tfl, result, _ = await self._fetch(
+            monkeypatch, raw_abbey_wood, method="elizabeth-line", line="elizabeth", station=self.STATION
+        )
+        assert tfl.platform_names(result) == ["3", "4"]
+        tfl.populate(result, filter_platform="4")
+        tfl.sort_data(10)
+        assert {d["platform"] for d in tfl.get_departures()} == {"4"}
+
+    async def test_terminating_trains_do_not_log_missing_times(
+        self, monkeypatch, raw_abbey_wood: str, caplog
+    ) -> None:
+        tfl, result, _ = await self._fetch(
+            monkeypatch, raw_abbey_wood, method="elizabeth-line", line="elizabeth", station=self.STATION
+        )
+        with caplog.at_level(logging.WARNING):
+            tfl.populate(result, filter_platform="")
+            tfl.sort_data(5)
+            tfl.get_departures()
+        assert "No expected arrival or departure time" not in caplog.text
+
+    async def test_arrivals_feed_drops_trains_terminating_here(self, monkeypatch) -> None:
+        station = "940GZZLUSTD"
+        body = json.dumps([
+            {"destinationNaptanId": station, "destinationName": "Stratford Underground Station",
+             "expectedArrival": "2026-11-17T15:00:00Z", "platformName": "Platform 13"},
+            {"destinationNaptanId": "940GZZLUSTM", "destinationName": "Stanmore Underground Station",
+             "expectedArrival": "2026-11-17T15:03:00Z", "platformName": "Platform 14"},
+        ])
+        _, result, _ = await self._fetch(monkeypatch, body, method="tube", line="jubilee", station=station)
+        assert [item["destinationName"] for item in result] == ["Stanmore Underground Station"]
 
 
 class TestDeparturesModeFilter:

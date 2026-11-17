@@ -126,6 +126,18 @@ TFL_TRANSPORT_TYPES = {
         "expected_arrival": "scheduledTimeOfArrival",
         "platform_name": "platformName",
     },
+    # The line arrivals feed only lists trains heading *to* a station, so at a terminus (Abbey Wood, Shenfield, Reading,
+    # Heathrow...) it shows the trains that end there and none of those that start there. arrivaldepartures lists both.
+    # TfL publishes no Elizabeth line timetables, so the "direction" field this feed lacks is not needed for matching.
+    "elizabeth-line": {
+        "transport_type": "Metros",
+        "icon": DEFAULT_ICONS["default"],
+        "use_destination_name": False,
+        "url": TFL_ALT_ARRIVALS_URL,
+        "expected_departure": "estimatedTimeOfDeparture",
+        "expected_arrival": "estimatedTimeOfArrival",
+        "platform_name": "platformName",
+    },
     "default": {
         "transport_type": "Metros",
         "icon": DEFAULT_ICONS["default"],

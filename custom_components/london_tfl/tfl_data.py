@@ -333,7 +333,7 @@ class TfLData:
                 msg = data.get("message", "Unknown TfL API error") if isinstance(data, dict) else "Unexpected TfL response"
                 _LOGGER.warning("TfL API error for %s: %s", url, msg)
                 return "Cannot reach TfL"
-            return data
+            return self._drop_terminating(data)
         except json.JSONDecodeError:
             _LOGGER.warning(
                 "Failed to interpret received JSON for %s: %.200r", url, result
@@ -342,6 +342,20 @@ class TfLData:
         except OSError:
             _LOGGER.exception("Internal error during request to %s", url)
             return "Cannot reach TfL"
+
+    def _drop_terminating(self, items: list) -> list:
+        """Leave out trains that end their journey here: they never depart, so they don't belong on a departure board.
+
+        The arrivals feed gives them this station as destination; arrivaldepartures lists them with no departure time.
+        """
+        method = self._method_property(TFL_TRANSPORT_TYPES)
+        departure_key = TFL_TRANSPORT_TYPES[method]["expected_departure"]
+        return [
+            item
+            for item in items
+            if not isinstance(item, dict)
+            or (item.get(departure_key) and item.get("destinationNaptanId") != self.station)
+        ]
 
     async def _fetch_ldbws(self, hass) -> Union[str, list]:
         if not self.rdm_api_key and not self.nr_api_key:
