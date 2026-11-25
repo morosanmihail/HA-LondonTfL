@@ -20,11 +20,18 @@ DEFAULT_METHODS = [
     "cable-car",
     "tram",
     "river-tour",
+    "river-bus",
     "elizabeth-line",
     "national-rail",
     "bus",
 ]  # noqa
-DEFAULT_ICONS = {"bus": "mdi:bus", "tram": "mdi:tram", "default": "mdi:train"}
+DEFAULT_ICONS = {
+    "bus": "mdi:bus",
+    "tram": "mdi:tram",
+    "river-bus": "mdi:ferry",
+    "river-tour": "mdi:ferry",
+    "default": "mdi:train",
+}
 
 # Shown in front of the destination on departure cards for trains that come from the timetable only (no live
 # prediction yet). A clock, U+1F552.
@@ -45,6 +52,11 @@ TFL_ALT_ARRIVALS_URL = (
 )
 TFL_STATIONS_URL = "https://api.tfl.gov.uk/line/{0}/stoppoints"
 TFL_TIMETABLE_URL = "https://api.tfl.gov.uk/Line/{0}/Timetable/{1}"
+# Modes TfL publishes no timetables for, so the timetable request is never made. National Rail has its own feed. For
+# the Overground and the Elizabeth line, /Line/{line}/Timetable/{stop} answers 404, either directly or for every link
+# in its route menu; TfL staff confirm they "don't have dynamic timetables for Elizabeth line or London Overground"
+# (techforum.tfl.gov.uk/t/2428).
+NO_TIMETABLE_METHODS = {"national-rail", "overground", "elizabeth-line"}
 TFL_API_BASE = "https://api.tfl.gov.uk"
 USE_LDBWS_URL = "use-ldbws-purposefully-not-a-url"
 
@@ -157,6 +169,7 @@ TFL_COLOUR_CODES = {
     "bus": {"r": 220, "g": 36, "b": 31},
     "cable-car": {"r": 115, "g": 79, "b": 160},
     "river-tour": {"r": 3, "g": 155, "b": 229},
+    "river-bus": {"r": 3, "g": 155, "b": 229},
     "tram": {"r": 95, "g": 181, "b": 38},
     "bakerloo": {"r": 179, "g": 99, "b": 5},
     "central": {"r": 227, "g": 32, "b": 23},

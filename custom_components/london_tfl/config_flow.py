@@ -222,6 +222,11 @@ async def _fetch_stations(method: str, line_csv: str) -> dict[str, StationOption
             id_key = "id" if method == "bus" else "stationNaptan"
             for item in data:
                 station_id = item[id_key]
+                # A bus route's stop list also holds the areas that group its stops (490G..., 400G..., and rail
+                # stations such as 910G...): each is its own stationNaptan. TfL has no arrivals or timetable for
+                # those, only for the stops inside them, so a sensor on one would never show a bus.
+                if method == "bus" and station_id == item.get("stationNaptan"):
+                    continue
                 items[station_id] = item
                 counts[station_id] = counts.get(station_id, 0) + 1
         except Exception:

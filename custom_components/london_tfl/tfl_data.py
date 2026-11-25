@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 
 from custom_components.london_tfl.codes import atco_to_crs
 from custom_components.london_tfl.const import (
+    NO_TIMETABLE_METHODS,
     TFL_API_BASE,
     TFL_TRANSPORT_TYPES,
     TFL_COLOUR_CODES,
@@ -45,14 +46,18 @@ LONDON = ZoneInfo("Europe/London")
 # How far ahead scheduled departures are merged in (the sensor still caps the list at "max").
 SCHEDULE_WINDOW_SECONDS = 2 * 3600
 TIMETABLE_CACHE_SECONDS = 24 * 3600
-# After a failed timetable fetch, wait this long before asking TfL again.
+# After a failed timetable fetch, wait this long before asking TfL again. Each further failure in a row doubles the
+# wait, up to a day, so a line TfL has no timetable for is not asked about every half hour forever.
 TIMETABLE_RETRY_SECONDS = 30 * 60
 # A live train and a timetabled one this close together (and going the same way) are the same train.
 MATCH_SECONDS_SAME_DESTINATION = 180
 MATCH_SECONDS_TIME_ONLY = 120
 
-_DAY_INDEX = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
-_DAY_TOKEN = re.compile(r"\b(mon|tue|wed|thu|fri|sat|sun)[a-z]*", re.IGNORECASE)
+_DAY_NAMES = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+_WORD = re.compile(r"\b[a-z]{2,}\b", re.IGNORECASE)
+# "Saturday (also Good Friday)" names a holiday, not the weekday Friday. "Not on Good Friday" does not pick it out.
+_GOOD_FRIDAY = re.compile(r"\bgood\s+friday\b", re.IGNORECASE)
+_NOT_GOOD_FRIDAY = re.compile(r"\b(?:not|except|excluding|exc\.?)\s+(?:on\s+)?good\s+friday\b", re.IGNORECASE)
 _RANGE_JOINER = re.compile(r"\s*(?:to|-|–|—|through|thru|until)\s*", re.IGNORECASE)
 _STATION_SUFFIXES = (
     " underground station", " dlr station", " rail station", " tram stop", " station",
@@ -71,12 +76,28 @@ def clear_timetable_cache() -> None:
     _timetable_locks.clear()
 
 
+def _day_index(word: str):
+    """Monday=0 for a day name or abbreviation of one ("Mo", "Tues", "Thurs", "Weds", "Sundays"), else None."""
+    word = word.lower()
+    if len(word) > 2 and word.endswith("s"):
+        word = word[:-1]
+    return next((i for i, day in enumerate(_DAY_NAMES) if day.startswith(word)), None)
+
+
 def _schedule_days(name: str) -> set:
     """Weekdays (Monday=0) a TfL schedule name covers.
 
-    Copes with "Monday to Friday", "Monday - Friday", "Mondays", "Mon - Thu", "Saturday",
+    Copes with "Monday to Friday", "Monday - Friday", "Mondays", "Mon - Thu", "Mo-Th", "Saturday",
     "Saturdays and Public Holidays", "Tuesdays and Wednesdays", "Weekdays", "Weekend" and so on.
+
+    Night bus schedules are named for both halves of the night ("Friday Night/Saturday Morning",
+    "Mo-Th Nights/Tu-Fr Morning"). Their journeys are listed as hour 24 and later of the night's own day, so only
+    the night half counts.
     """
+    parts = name.split("/")
+    if len(parts) > 1 and any("night" in p.lower() for p in parts):
+        name = "/".join(p for p in parts if "morning" not in p.lower())
+    name = _GOOD_FRIDAY.sub("", name)
     lowered = name.lower()
     days = set()
     if "weekday" in lowered:
@@ -86,14 +107,14 @@ def _schedule_days(name: str) -> set:
     if "daily" in lowered or "every day" in lowered:
         days |= set(range(7))
 
-    tokens = list(_DAY_TOKEN.finditer(name))
+    tokens = [(m, day) for m in _WORD.finditer(name) if (day := _day_index(m.group())) is not None]
     i = 0
     while i < len(tokens):
-        start = _DAY_INDEX[tokens[i].group(1).lower()]
+        start = tokens[i][1]
         if i + 1 < len(tokens) and _RANGE_JOINER.fullmatch(
-            name[tokens[i].end() : tokens[i + 1].start()]
+            name[tokens[i][0].end() : tokens[i + 1][0].start()]
         ):
-            end = _DAY_INDEX[tokens[i + 1].group(1).lower()]
+            end = tokens[i + 1][1]
             if start <= end:
                 days |= set(range(start, end + 1))
             else:
@@ -105,10 +126,14 @@ def _schedule_days(name: str) -> set:
     return days
 
 
+def _good_friday(year: int) -> date:
+    return easter(year) - timedelta(days=2)
+
+
 def _is_bank_holiday(day: date) -> bool:
     """England and Wales bank holidays (the fixed rules; one-off extra holidays are not known)."""
     y = day.year
-    good_friday = easter(y) - timedelta(days=2)
+    good_friday = _good_friday(y)
     holidays = {good_friday, good_friday + timedelta(days=3)}
 
     def first_monday(month):
@@ -138,10 +163,17 @@ def _is_bank_holiday(day: date) -> bool:
 def _pick_schedule(schedules: list, service_date: date):
     """The schedule that runs on a date.
 
-    On a bank holiday a schedule that mentions holidays ("Saturdays and Public Holidays") wins. Otherwise the most
-    specific name covering the weekday is used, preferring a plain one over a variant such as "Monday to Friday
-    (School Holidays)".
+    On Good Friday a schedule naming it ("Saturday (also Good Friday)", as the Tube's do) wins. On a bank holiday a
+    schedule that mentions holidays ("Saturdays and Public Holidays") wins. Otherwise the most specific name covering
+    the weekday is used, preferring a plain one over a variant such as "Monday to Friday (School Holidays)".
     """
+    if service_date == _good_friday(service_date.year):
+        named = [
+            s for s in schedules
+            if _GOOD_FRIDAY.search(s.get("name", "")) and not _NOT_GOOD_FRIDAY.search(s.get("name", ""))
+        ]
+        if named:
+            return named[0]
     if _is_bank_holiday(service_date):
         holiday = [s for s in schedules if "public holiday" in s.get("name", "").lower()]
         if holiday:
@@ -154,7 +186,9 @@ def _pick_schedule(schedules: list, service_date: date):
             matching,
             key=lambda s: (len(_schedule_days(s.get("name", ""))), "holiday" in s.get("name", "").lower()),
         )
-    if len(schedules) == 1:
+    # A lone schedule whose name names no days at all is taken to run every day. One that names other days (the N97
+    # publishes only "Saturday Night/Sunday Morning") does not run today.
+    if len(schedules) == 1 and not _schedule_days(schedules[0].get("name", "")):
         return schedules[0]
     return None
 
@@ -232,7 +266,7 @@ async def _download_line_timetables(line: str, station: str) -> list:
             _LOGGER.debug("No usable timetable from %s", option_url)
 
     if not timetables:
-        _LOGGER.warning(
+        _LOGGER.debug(
             "TfL offered %d routes for %s at %s but no timetable could be fetched for any of them",
             len(uris), line, station,
         )
@@ -259,13 +293,22 @@ async def _get_line_timetables(line: str, station: str, force: bool = False) -> 
             timetables = []
 
         if timetables:
-            entry = {"timetables": timetables, "fetched": now, "retry_after": None}
+            entry = {"timetables": timetables, "fetched": now, "retry_after": None, "failures": 0}
         else:
+            failures = (entry["failures"] if entry else 0) + 1
+            wait = min(TIMETABLE_RETRY_SECONDS * 2 ** (failures - 1), TIMETABLE_CACHE_SECONDS)
+            if failures == 1:
+                _LOGGER.warning(
+                    "No timetable available from TfL for %s at %s; scheduled departures will be empty. "
+                    "Retrying with increasing delays, up to once a day",
+                    line, station,
+                )
             # Keep whatever we had (a day-old timetable beats none) and try again later.
             entry = {
                 "timetables": entry["timetables"] if entry else [],
                 "fetched": entry["fetched"] if entry else None,
-                "retry_after": now + timedelta(seconds=TIMETABLE_RETRY_SECONDS),
+                "retry_after": now + timedelta(seconds=wait),
+                "failures": failures,
             }
         _timetable_cache[key] = entry
         return entry["timetables"]
@@ -429,7 +472,7 @@ class TfLData:
 
     async def fetch_timetable(self, hass, force: bool = False) -> bool:
         """Fetch timetable data. Returns True if timetable data is available."""
-        if self.method == "national-rail":
+        if self.method in NO_TIMETABLE_METHODS:
             return False
 
         timetables = []
@@ -602,7 +645,11 @@ class TfLData:
                 if schedule is None:
                     if service_date.weekday() not in self._warned_schedule_weekdays:
                         self._warned_schedule_weekdays.add(service_date.weekday())
-                        _LOGGER.warning(
+                        # Every name understood means the route simply does not run that day (a night bus that
+                        # runs only on Saturday nights); a name naming no days is one this code cannot read.
+                        unreadable = any(not _schedule_days(s.get("name", "")) for s in schedules)
+                        _LOGGER.log(
+                            logging.WARNING if unreadable else logging.DEBUG,
                             "No timetable schedule matches weekday %s for %s at %s (schedules: %s)",
                             service_date.weekday(), line or self.line, self.station,
                             [s.get("name") for s in schedules],

@@ -110,6 +110,25 @@ class TestFetchStationsSingleLine:
         assert set(stations) == {x["stationNaptan"] for x in FIXTURE_BY_LINE["victoria"]}
 
 
+    async def test_bus_skips_stop_areas(self, monkeypatch) -> None:
+        # As TfL lists route 465: real stops (each with or without a parent area), the areas themselves, and a rail
+        # station. Only the stops have arrivals.
+        stops = [
+            {"id": "40004408016A", "stationNaptan": "400G4408016A", "commonName": "Zig Zag Road"},
+            {"id": "40004408086A", "commonName": "Leatherhead"},
+            {"id": "490005121Y", "stationNaptan": "490G000512", "commonName": "Chessington World of Adventures"},
+            {"id": "400G4408016A", "stationNaptan": "400G4408016A", "commonName": "Zig Zag Road"},
+            {"id": "490G000512", "stationNaptan": "490G000512", "commonName": "Chessington World of Adventures"},
+            {"id": "910GLETHRHD", "stationNaptan": "910GLETHRHD", "commonName": "Leatherhead Rail Station"},
+        ]
+        monkeypatch.setattr(
+            "custom_components.london_tfl.config_flow.request",
+            _make_fake_request(available_lines={"465": stops}),
+        )
+        stations = await _fetch_stations("bus", "465")
+        assert set(stations) == {"40004408016A", "40004408086A", "490005121Y"}
+
+
 class TestFetchStationsMultiLine:
     async def test_union_includes_stations_from_all_lines(self, monkeypatch) -> None:
         monkeypatch.setattr(
