@@ -28,7 +28,12 @@ def _fake_network(monkeypatch):
     async def fake_fetch(self, hass):
         return ARRIVALS
 
+    async def no_timetable(url: str):
+        # Creating the entry sets up the sensors, which ask TfL for a timetable; keep that off the network too.
+        return None
+
     monkeypatch.setattr("custom_components.london_tfl.config_flow.request", fake_request)
+    monkeypatch.setattr("custom_components.london_tfl.tfl_data.request", no_timetable)
     monkeypatch.setattr(TfLData, "fetch", fake_fetch)
 
 
