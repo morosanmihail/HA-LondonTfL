@@ -1,0 +1,80 @@
+[
+ {
+  "$type": "Tfl.Api.Presentation.Entities.ArrivalDeparture, Tfl.Api.Presentation.Entities",
+  "platformName": "Platform 5",
+  "destinationNaptanId": "910GPADTLL",
+  "destinationName": "Paddington",
+  "naptanId": "910GSTFD",
+  "stationName": "Stratford (London) Rail Station",
+  "estimatedTimeOfDeparture": "2026-11-26T14:20:00Z",
+  "scheduledTimeOfDeparture": "2026-11-26T14:20:00Z",
+  "minutesAndSecondsToArrival": "",
+  "minutesAndSecondsToDeparture": "",
+  "departureStatus": "OnTime"
+ },
+ {
+  "$type": "Tfl.Api.Presentation.Entities.ArrivalDeparture, Tfl.Api.Presentation.Entities",
+  "platformName": "Platform 8",
+  "destinationNaptanId": "910GSHENFLD",
+  "destinationName": "Shenfield Rail Station",
+  "naptanId": "910GSTFD",
+  "stationName": "Stratford (London) Rail Station",
+  "estimatedTimeOfDeparture": "2026-11-26T14:21:00Z",
+  "scheduledTimeOfDeparture": "2026-11-26T14:21:00Z",
+  "minutesAndSecondsToArrival": "",
+  "minutesAndSecondsToDeparture": "",
+  "departureStatus": "OnTime"
+ },
+ {
+  "$type": "Tfl.Api.Presentation.Entities.ArrivalDeparture, Tfl.Api.Presentation.Entities",
+  "platformName": "Platform Unknown",
+  "destinationNaptanId": "910GHTRWTM5",
+  "destinationName": "Heathrow Terminal 5 Rail Station",
+  "naptanId": "910GSTFD",
+  "stationName": "Stratford (London) Rail Station",
+  "estimatedTimeOfDeparture": "2026-11-26T14:24:00Z",
+  "scheduledTimeOfDeparture": "2026-11-26T14:24:00Z",
+  "minutesAndSecondsToArrival": "",
+  "minutesAndSecondsToDeparture": "",
+  "departureStatus": "OnTime"
+ },
+ {
+  "$type": "Tfl.Api.Presentation.Entities.ArrivalDeparture, Tfl.Api.Presentation.Entities",
+  "platformName": "Platform Unknown",
+  "destinationNaptanId": "910GLIVST",
+  "destinationName": "London Liverpool Street Rail Station",
+  "naptanId": "910GSTFD",
+  "stationName": "Stratford (London) Rail Station",
+  "estimatedTimeOfDeparture": "2026-11-26T14:27:00Z",
+  "scheduledTimeOfDeparture": "2026-11-26T14:27:00Z",
+  "minutesAndSecondsToArrival": "",
+  "minutesAndSecondsToDeparture": "",
+  "departureStatus": "OnTime"
+ },
+ {
+  "$type": "Tfl.Api.Presentation.Entities.ArrivalDeparture, Tfl.Api.Presentation.Entities",
+  "platformName": "Platform Unknown",
+  "destinationNaptanId": "910GSHENFLD",
+  "destinationName": "Shenfield Rail Station",
+  "naptanId": "910GSTFD",
+  "stationName": "Stratford (London) Rail Station",
+  "estimatedTimeOfDeparture": "2026-11-26T14:29:00Z",
+  "scheduledTimeOfDeparture": "2026-11-26T14:29:00Z",
+  "minutesAndSecondsToArrival": "",
+  "minutesAndSecondsToDeparture": "",
+  "departureStatus": "OnTime"
+ },
+ {
+  "$type": "Tfl.Api.Presentation.Entities.ArrivalDeparture, Tfl.Api.Presentation.Entities",
+  "platformName": "Platform Unknown",
+  "destinationNaptanId": "910GPADTLL",
+  "destinationName": "Paddington",
+  "naptanId": "910GSTFD",
+  "stationName": "Stratford (London) Rail Station",
+  "estimatedTimeOfDeparture": "2026-11-26T14:31:00Z",
+  "scheduledTimeOfDeparture": "2026-11-26T14:31:00Z",
+  "minutesAndSecondsToArrival": "",
+  "minutesAndSecondsToDeparture": "",
+  "departureStatus": "OnTime"
+ }
+]

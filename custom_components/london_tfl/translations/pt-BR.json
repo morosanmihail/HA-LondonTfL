@@ -7,7 +7,8 @@
       "request": "Falha ao conectar aos servidores TfL para recuperar dados.",
       "api_key_required": "As partidas da National Rail exigem uma chave de API do Rail Data Marketplace (ou um token Darwin legado).",
       "invalid_crs": "Um código CRS tem exatamente três letras, ex.: VXH.",
-      "crs_not_found": "Não foi possível encontrar automaticamente o código CRS desta estação. Informe-o manualmente (consulte em {crs_lookup_url})."
+      "crs_not_found": "Não foi possível encontrar automaticamente o código CRS desta estação. Informe-o manualmente (consulte em {crs_lookup_url}).",
+      "calling_at_wrong_direction": "A estação escolhida em \"Passando por\" não fica no sentido escolhido a partir desta parada, então nenhum trem seria mostrado."
     },
     "step": {
       "user": {
@@ -46,7 +47,14 @@
         "title": "Plataforma",
         "description": "Escolha de qual plataforma de {stop_name} mostrar as partidas, ou deixe em branco para todas.\n\nA lista é montada a partir das partidas que a TfL está reportando agora ({platform_count} plataforma(s) encontrada(s)). Se a plataforma desejada não aparecer — por exemplo, porque nada está previsto nela no momento — você pode digitá-la; o filtro compara com o nome da plataforma conforme reportado pela TfL, sem o prefixo \"Platform \" (ex.: \"Eastbound - 2\" ou \"14\"). Para pontos de ônibus, é o número da linha.",
         "data": {
-          "platform": "Plataforma"
+          "platform": "Plataforma",
+          "direction": "Sentido da viagem",
+          "calling_at": "Passando por"
+        },
+        "data_description": {
+          "direction": "Tube, Elizabeth line, Overground, DLR e bonde. Mostra todos os trens que seguem neste sentido, calculado a partir dos dados de rotas da TfL em vez da plataforma ou do destino, por isso continua funcionando quando os trens são desviados para outra plataforma, mudam de destino conforme o horário ou terminam antes. Em linhas com ramais o trem segue o sentido da rota em que circula (em Earl's Court, os trens para Wimbledon e Ealing Broadway são ambos westbound); se os trens que você quer contam como sentidos diferentes, use \"Passando por\" com uma estação em comum. Não é oferecido em linhas circulares como a Circle line, onde a bússola não faz sentido; use \"Passando por\". Deixe em branco para todos os sentidos. Alterar isto dá ao sensor um novo ID de entidade.",
+          "calling_at": "Tube, Elizabeth line, Overground, DLR e bonde. Mostra apenas os trens cuja rota a partir daqui passa por (ou termina em) esta estação, ex.: Stratford a partir de Liverpool Street para excluir os trens para Abbey Wood, ou uma estação num ramal de uma linha do Tube. Estações com duas partes na linha, como Liverpool Street e Paddington na Elizabeth line, aparecem uma vez e valem para as duas, incluindo trens desviados para terminar na estação da linha principal durante problemas. A TfL não publica as paradas de cada trem, então isto segue a rota até o destino do trem. Se também escolher um sentido, ele deve ser o sentido em que esta estação fica. Deixe em branco para todos. Alterar isto dá ao sensor um novo ID de entidade.",
+          "platform": "Elizabeth line, Overground e DLR: deixe em branco e use \"Sentido da viagem\" ou \"Passando por\". A TfL informa muitos trens como \"Platform Unknown\", algumas estações (ex.: Stratford) informam a mesma plataforma como número para alguns trens e \"Unknown\" para outros, e os números das plataformas do DLR não indicam o sentido, então um filtro de plataforma pode descartar trens sem avisar. No Tube os nomes das plataformas incluem o sentido (ex.: \"Westbound - Platform 2\"), então o filtro de plataforma funciona."
         }
       }
     }
@@ -59,7 +67,8 @@
       "request": "Falha ao conectar aos servidores TfL para recuperar dados.",
       "api_key_required": "As partidas da National Rail exigem uma chave de API do Rail Data Marketplace (ou um token Darwin legado).",
       "invalid_crs": "Um código CRS tem exatamente três letras, ex.: VXH.",
-      "crs_not_found": "Não foi possível encontrar automaticamente o código CRS desta estação. Informe-o manualmente (consulte em {crs_lookup_url})."
+      "crs_not_found": "Não foi possível encontrar automaticamente o código CRS desta estação. Informe-o manualmente (consulte em {crs_lookup_url}).",
+      "calling_at_wrong_direction": "A estação escolhida em \"Passando por\" não fica no sentido escolhido a partir desta parada, então nenhum trem seria mostrado."
     },
     "step": {
       "init": {
@@ -67,7 +76,8 @@
         "menu_options": {
           "add_stop": "Adicionar uma parada",
           "edit_stop": "Editar uma parada",
-          "remove_stop": "Remover paradas"
+          "remove_stop": "Remover paradas",
+          "strikes": "Alertas de greve"
         }
       },
       "add_stop": {
@@ -105,7 +115,14 @@
         "title": "Adicionar parada — plataforma",
         "description": "Escolha de qual plataforma de {stop_name} mostrar as partidas, ou deixe em branco para todas.\n\nA lista é montada a partir das partidas que a TfL está reportando agora ({platform_count} plataforma(s) encontrada(s)). Se a plataforma desejada não aparecer — por exemplo, porque nada está previsto nela no momento — você pode digitá-la; o filtro compara com o nome da plataforma conforme reportado pela TfL, sem o prefixo \"Platform \" (ex.: \"Eastbound - 2\" ou \"14\"). Para pontos de ônibus, é o número da linha.",
         "data": {
-          "platform": "Plataforma"
+          "platform": "Plataforma",
+          "direction": "Sentido da viagem",
+          "calling_at": "Passando por"
+        },
+        "data_description": {
+          "direction": "Tube, Elizabeth line, Overground, DLR e bonde. Mostra todos os trens que seguem neste sentido, calculado a partir dos dados de rotas da TfL em vez da plataforma ou do destino, por isso continua funcionando quando os trens são desviados para outra plataforma, mudam de destino conforme o horário ou terminam antes. Em linhas com ramais o trem segue o sentido da rota em que circula (em Earl's Court, os trens para Wimbledon e Ealing Broadway são ambos westbound); se os trens que você quer contam como sentidos diferentes, use \"Passando por\" com uma estação em comum. Não é oferecido em linhas circulares como a Circle line, onde a bússola não faz sentido; use \"Passando por\". Deixe em branco para todos os sentidos. Alterar isto dá ao sensor um novo ID de entidade.",
+          "calling_at": "Tube, Elizabeth line, Overground, DLR e bonde. Mostra apenas os trens cuja rota a partir daqui passa por (ou termina em) esta estação, ex.: Stratford a partir de Liverpool Street para excluir os trens para Abbey Wood, ou uma estação num ramal de uma linha do Tube. Estações com duas partes na linha, como Liverpool Street e Paddington na Elizabeth line, aparecem uma vez e valem para as duas, incluindo trens desviados para terminar na estação da linha principal durante problemas. A TfL não publica as paradas de cada trem, então isto segue a rota até o destino do trem. Se também escolher um sentido, ele deve ser o sentido em que esta estação fica. Deixe em branco para todos. Alterar isto dá ao sensor um novo ID de entidade.",
+          "platform": "Elizabeth line, Overground e DLR: deixe em branco e use \"Sentido da viagem\" ou \"Passando por\". A TfL informa muitos trens como \"Platform Unknown\", algumas estações (ex.: Stratford) informam a mesma plataforma como número para alguns trens e \"Unknown\" para outros, e os números das plataformas do DLR não indicam o sentido, então um filtro de plataforma pode descartar trens sem avisar. No Tube os nomes das plataformas incluem o sentido (ex.: \"Westbound - Platform 2\"), então o filtro de plataforma funciona."
         }
       },
       "edit_stop": {
@@ -124,13 +141,17 @@
           "shortenStationNames": "Encurtar nomes de estações?",
           "rdm_api_key": "Chave de API do Rail Data Marketplace",
           "nr_api_key": "Token legado do Darwin/Live Departure Boards",
-          "crs": "Código CRS da estação"
+          "crs": "Código CRS da estação",
+          "direction": "Sentido da viagem",
+          "calling_at": "Passando por"
         },
         "data_description": {
           "rdm_api_key": "Esta linha não é suportada pela API da TfL e requer uma chave de API do Rail Data Marketplace para exibir os horários de partida.\nCadastre-se em {registration_url}, assine o produto **Live Departure Board** e cole a chave de API do produto aqui. Você pode reutilizar a chave em várias paradas.",
           "nr_api_key": "Opcional. Token do serviço Darwin OpenLDBWS, descontinuado ({legacy_registration_url}). Usado sozinho se nenhuma chave do Rail Data Marketplace for informada; caso contrário, apenas como alternativa se a requisição ao Rail Data Marketplace falhar.",
           "crs": "Opcional. Código de estação da National Rail com três letras (ex.: VXH). Deixe em branco para detectar automaticamente.",
-          "platform": "Escolha entre as plataformas que estão reportando partidas agora ({platform_count} encontrada(s)), ou digite o nome da plataforma conforme reportado pela TfL, sem o prefixo \"Platform \" (ex.: \"Eastbound - 2\" ou \"14\")."
+          "platform": "Escolha entre as plataformas que estão reportando partidas agora ({platform_count} encontrada(s)), ou digite o nome da plataforma conforme reportado pela TfL, sem o prefixo \"Platform \" (ex.: \"Eastbound - 2\" ou \"14\"). Elizabeth line, Overground e DLR: deixe em branco e use \"Sentido da viagem\" ou \"Passando por\", pois a TfL costuma informar \"Platform Unknown\", misturá-lo com números reais ou (DLR) usar números que não indicam o sentido.",
+          "direction": "Tube, Elizabeth line, Overground, DLR e bonde. Mostra todos os trens que seguem neste sentido, calculado a partir dos dados de rotas da TfL em vez da plataforma ou do destino, por isso continua funcionando quando os trens são desviados para outra plataforma, mudam de destino conforme o horário ou terminam antes. Em linhas com ramais o trem segue o sentido da rota em que circula (em Earl's Court, os trens para Wimbledon e Ealing Broadway são ambos westbound); se os trens que você quer contam como sentidos diferentes, use \"Passando por\" com uma estação em comum. Não é oferecido em linhas circulares como a Circle line, onde a bússola não faz sentido; use \"Passando por\". Deixe em branco para todos os sentidos. Alterar isto dá ao sensor um novo ID de entidade.",
+          "calling_at": "Tube, Elizabeth line, Overground, DLR e bonde. Mostra apenas os trens cuja rota a partir daqui passa por (ou termina em) esta estação, ex.: Stratford a partir de Liverpool Street para excluir os trens para Abbey Wood, ou uma estação num ramal de uma linha do Tube. Estações com duas partes na linha, como Liverpool Street e Paddington na Elizabeth line, aparecem uma vez e valem para as duas, incluindo trens desviados para terminar na estação da linha principal durante problemas. A TfL não publica as paradas de cada trem, então isto segue a rota até o destino do trem. Se também escolher um sentido, ele deve ser o sentido em que esta estação fica. Deixe em branco para todos. Alterar isto dá ao sensor um novo ID de entidade."
         }
       },
       "remove_stop": {
@@ -138,6 +159,18 @@
         "description": "Selecione as paradas que você deseja remover.",
         "data": {
           "stop_indices": "Paradas a remover"
+        }
+      },
+      "strikes": {
+        "title": "Alertas de greve",
+        "description": "Adiciona três entidades que acompanham as greves anunciadas pela TfL, verificadas de hora em hora a partir dos dados de status da própria TfL:\n\n- **London TfL strikes**: quando começa a próxima greve, com todas as greves anunciadas (datas, linhas, descrição da TfL) nos atributos.\n- **London TfL strike today**: ligado quando uma greve afeta alguma das suas linhas hoje.\n- **London TfL strike within 7 days**: ligado quando há uma greve em andamento ou que começa nos próximos 7 dias.\n\nO README tem cartões de painel prontos para elas.",
+        "data": {
+          "enabled": "Acompanhar greves",
+          "lines": "Linhas a acompanhar"
+        },
+        "data_description": {
+          "enabled": "Desligue para remover as entidades de greve.",
+          "lines": "Deixe vazio para acompanhar todas as linhas do Tube, Elizabeth line, Overground, DLR e bonde ({line_count} linhas). As greves são anunciadas por linha, então escolha as que você usa para ignorar as demais."
         }
       }
     }

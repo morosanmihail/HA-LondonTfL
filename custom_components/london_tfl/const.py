@@ -10,6 +10,12 @@ CONF_NR_API_KEY = "nr_api_key"  # legacy Darwin OpenLDBWS (SOAP) token
 CONF_RDM_API_KEY = "rdm_api_key"  # Rail Data Marketplace LDBWS API key
 CONF_CRS = "crs"
 CONF_PLATFORM = "platform"
+CONF_DIRECTION = "direction"
+CONF_CALLING_AT = "calling_at"
+CONF_CALLING_AT_NAME = "calling_at_display_name"
+CONF_STRIKES = "strikes"
+CONF_STRIKES_ENABLED = "enabled"
+CONF_STRIKE_LINES = "lines"
 CONF_MAX = "max"
 DEFAULT_MAX = 3
 DEFAULT_LINES = {"dlr": "DLR", "jubilee": "Jubilee"}
@@ -52,12 +58,18 @@ TFL_ALT_ARRIVALS_URL = (
 )
 TFL_STATIONS_URL = "https://api.tfl.gov.uk/line/{0}/stoppoints"
 TFL_TIMETABLE_URL = "https://api.tfl.gov.uk/Line/{0}/Timetable/{1}"
+TFL_ROUTE_SEQUENCE_URL = "https://api.tfl.gov.uk/Line/{0}/Route/Sequence/{1}"
 # Modes TfL publishes no timetables for, so the timetable request is never made. National Rail has its own feed. For
 # the Overground and the Elizabeth line, /Line/{line}/Timetable/{stop} answers 404, either directly or for every link
 # in its route menu; TfL staff confirm they "don't have dynamic timetables for Elizabeth line or London Overground"
 # (techforum.tfl.gov.uk/t/2428).
 NO_TIMETABLE_METHODS = {"national-rail", "overground", "elizabeth-line"}
 TFL_API_BASE = "https://api.tfl.gov.uk"
+# Modes whose stops can be filtered by direction of travel or by a station the train calls at, worked out from the
+# line's route data and each train's destination. Their feeds often give no direction and no usable platform (the
+# Elizabeth line and Overground report many trains as "Platform Unknown"; DLR platforms are plain numbers). Buses are
+# left out: hundreds of routes, and every stop is its own point.
+ROUTE_FILTER_METHODS = {"tube", "elizabeth-line", "overground", "dlr", "tram"}
 USE_LDBWS_URL = "use-ldbws-purposefully-not-a-url"
 
 # Maps TfL national-rail line IDs to LDBWS two-letter TOC codes.

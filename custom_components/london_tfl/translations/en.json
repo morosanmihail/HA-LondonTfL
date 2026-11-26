@@ -7,7 +7,8 @@
       "request": "Failed to connect to TfL servers to retrieve data.",
       "api_key_required": "National Rail departures need a Rail Data Marketplace API key (or a legacy Darwin token).",
       "invalid_crs": "A CRS code is exactly three letters, e.g. VXH.",
-      "crs_not_found": "Could not find the CRS code for this station automatically. Please enter it (look it up at {crs_lookup_url})."
+      "crs_not_found": "Could not find the CRS code for this station automatically. Please enter it (look it up at {crs_lookup_url}).",
+      "calling_at_wrong_direction": "The chosen calling-at station is not in the chosen direction from this stop, so no trains would ever be shown."
     },
     "step": {
       "user": {
@@ -46,7 +47,14 @@
         "title": "Platform",
         "description": "Choose which platform at {stop_name} to show departures for, or leave blank for all platforms.\n\nThe list is built from the departures TfL is reporting right now ({platform_count} platform(s) found). If the platform you want isn't listed — for example because nothing is due there at the moment — you can type it in; the filter matches on the platform name as TfL reports it, with the \"Platform \" prefix removed (e.g. \"Eastbound - 2\" or \"14\"). For bus stops this is the route number.",
         "data": {
-          "platform": "Platform"
+          "platform": "Platform",
+          "direction": "Direction of travel",
+          "calling_at": "Calling at"
+        },
+        "data_description": {
+          "direction": "Tube, Elizabeth line, Overground, DLR and tram. Keeps every train heading this way, worked out from TfL's route data rather than the platform or destination, so it keeps working when trains are diverted to another platform, change destination by time of day or terminate early. On branching lines a train takes the direction of the route it runs on (at Earl's Court, Wimbledon and Ealing Broadway trains are both westbound); if trains you want count as different directions, use Calling at with a station they share. Not offered on loops such as the Circle line, where the compass means nothing; use Calling at there. Leave blank for all directions. Changing this gives the sensor a new entity ID.",
+          "calling_at": "Tube, Elizabeth line, Overground, DLR and tram. Keeps only trains whose route from here passes through (or ends at) this station, e.g. Stratford from Liverpool Street to leave out Abbey Wood trains, or a station on one branch of a Tube line. Stations with two parts on the line, like Liverpool Street and Paddington on the Elizabeth line, are listed once and match both, including trains diverted to terminate at the main line station during disruption. TfL doesn't publish each train's stopping pattern, so this follows the route to the train's destination. If you also set a direction, it must be the direction this station lies in. Leave blank for all. Changing this gives the sensor a new entity ID.",
+          "platform": "Elizabeth line, Overground and DLR: leave this blank and use Direction of travel or Calling at instead. TfL reports many trains as \"Platform Unknown\", some stations (e.g. Stratford) report the same platform as a number for some trains and \"Unknown\" for others, and DLR platform numbers say nothing about direction, so a platform filter can silently drop trains. Tube platform names include a direction (e.g. \"Westbound - Platform 2\"), so the platform filter works there."
         }
       }
     }
@@ -59,7 +67,8 @@
       "request": "Failed to connect to TfL servers to retrieve data.",
       "api_key_required": "National Rail departures need a Rail Data Marketplace API key (or a legacy Darwin token).",
       "invalid_crs": "A CRS code is exactly three letters, e.g. VXH.",
-      "crs_not_found": "Could not find the CRS code for this station automatically. Please enter it (look it up at {crs_lookup_url})."
+      "crs_not_found": "Could not find the CRS code for this station automatically. Please enter it (look it up at {crs_lookup_url}).",
+      "calling_at_wrong_direction": "The chosen calling-at station is not in the chosen direction from this stop, so no trains would ever be shown."
     },
     "step": {
       "init": {
@@ -67,7 +76,8 @@
         "menu_options": {
           "add_stop": "Add a stop",
           "edit_stop": "Edit a stop",
-          "remove_stop": "Remove stops"
+          "remove_stop": "Remove stops",
+          "strikes": "Strike alerts"
         }
       },
       "add_stop": {
@@ -105,7 +115,14 @@
         "title": "Add stop — platform",
         "description": "Choose which platform at {stop_name} to show departures for, or leave blank for all platforms.\n\nThe list is built from the departures TfL is reporting right now ({platform_count} platform(s) found). If the platform you want isn't listed — for example because nothing is due there at the moment — you can type it in; the filter matches on the platform name as TfL reports it, with the \"Platform \" prefix removed (e.g. \"Eastbound - 2\" or \"14\"). For bus stops this is the route number.",
         "data": {
-          "platform": "Platform"
+          "platform": "Platform",
+          "direction": "Direction of travel",
+          "calling_at": "Calling at"
+        },
+        "data_description": {
+          "direction": "Tube, Elizabeth line, Overground, DLR and tram. Keeps every train heading this way, worked out from TfL's route data rather than the platform or destination, so it keeps working when trains are diverted to another platform, change destination by time of day or terminate early. On branching lines a train takes the direction of the route it runs on (at Earl's Court, Wimbledon and Ealing Broadway trains are both westbound); if trains you want count as different directions, use Calling at with a station they share. Not offered on loops such as the Circle line, where the compass means nothing; use Calling at there. Leave blank for all directions. Changing this gives the sensor a new entity ID.",
+          "calling_at": "Tube, Elizabeth line, Overground, DLR and tram. Keeps only trains whose route from here passes through (or ends at) this station, e.g. Stratford from Liverpool Street to leave out Abbey Wood trains, or a station on one branch of a Tube line. Stations with two parts on the line, like Liverpool Street and Paddington on the Elizabeth line, are listed once and match both, including trains diverted to terminate at the main line station during disruption. TfL doesn't publish each train's stopping pattern, so this follows the route to the train's destination. If you also set a direction, it must be the direction this station lies in. Leave blank for all. Changing this gives the sensor a new entity ID.",
+          "platform": "Elizabeth line, Overground and DLR: leave this blank and use Direction of travel or Calling at instead. TfL reports many trains as \"Platform Unknown\", some stations (e.g. Stratford) report the same platform as a number for some trains and \"Unknown\" for others, and DLR platform numbers say nothing about direction, so a platform filter can silently drop trains. Tube platform names include a direction (e.g. \"Westbound - Platform 2\"), so the platform filter works there."
         }
       },
       "edit_stop": {
@@ -124,13 +141,17 @@
           "shortenStationNames": "Shorten station names?",
           "nr_api_key": "Legacy Darwin/Live Departure Boards token",
           "rdm_api_key": "Rail Data Marketplace API key",
-          "crs": "Station CRS code"
+          "crs": "Station CRS code",
+          "direction": "Direction of travel",
+          "calling_at": "Calling at"
         },
         "data_description": {
           "rdm_api_key": "This line is not supported by the TfL API and requires a Rail Data Marketplace API key to show departure times.\nRegister at {registration_url}, subscribe to **Live Departure Board** and paste the product's API key here. You can reuse the key for multiple stops.",
           "nr_api_key": "Optional. Token for the deprecated Darwin OpenLDBWS service ({legacy_registration_url}). Used on its own if no Rail Data Marketplace key is set, otherwise only as a fallback if the Rail Data Marketplace request fails.",
           "crs": "Optional. Three-letter National Rail station code (e.g. VXH). Leave blank to detect it automatically.",
-          "platform": "Pick from the platforms currently reporting departures ({platform_count} found), or type a platform name as TfL reports it with the \"Platform \" prefix removed (e.g. \"Eastbound - 2\" or \"14\")."
+          "platform": "Pick from the platforms currently reporting departures ({platform_count} found), or type a platform name as TfL reports it with the \"Platform \" prefix removed (e.g. \"Eastbound - 2\" or \"14\"). Elizabeth line, Overground and DLR: leave this blank and use Direction of travel or Calling at instead, because TfL often reports \"Platform Unknown\", mixes it with real numbers, or (DLR) uses numbers that say nothing about direction.",
+          "direction": "Tube, Elizabeth line, Overground, DLR and tram. Keeps every train heading this way, worked out from TfL's route data rather than the platform or destination, so it keeps working when trains are diverted to another platform, change destination by time of day or terminate early. On branching lines a train takes the direction of the route it runs on (at Earl's Court, Wimbledon and Ealing Broadway trains are both westbound); if trains you want count as different directions, use Calling at with a station they share. Not offered on loops such as the Circle line, where the compass means nothing; use Calling at there. Leave blank for all directions. Changing this gives the sensor a new entity ID.",
+          "calling_at": "Tube, Elizabeth line, Overground, DLR and tram. Keeps only trains whose route from here passes through (or ends at) this station, e.g. Stratford from Liverpool Street to leave out Abbey Wood trains, or a station on one branch of a Tube line. Stations with two parts on the line, like Liverpool Street and Paddington on the Elizabeth line, are listed once and match both, including trains diverted to terminate at the main line station during disruption. TfL doesn't publish each train's stopping pattern, so this follows the route to the train's destination. If you also set a direction, it must be the direction this station lies in. Leave blank for all. Changing this gives the sensor a new entity ID."
         }
       },
       "remove_stop": {
@@ -138,6 +159,18 @@
         "description": "Select the stops you want to remove.",
         "data": {
           "stop_indices": "Stops to remove"
+        }
+      },
+      "strikes": {
+        "title": "Strike alerts",
+        "description": "Adds three entities that track strikes announced by TfL, checked hourly from TfL's own status data:\n\n- **London TfL strikes**: when the next strike starts, with every announced strike (dates, lines, TfL's description) in its attributes.\n- **London TfL strike today**: on when a strike affects any of your lines today.\n- **London TfL strike within 7 days**: on when a strike is under way or starts within the next 7 days.\n\nThe README has ready-made dashboard cards for them.",
+        "data": {
+          "enabled": "Track strikes",
+          "lines": "Lines to watch"
+        },
+        "data_description": {
+          "enabled": "Turn off to remove the strike entities.",
+          "lines": "Leave empty to watch every Tube, Elizabeth line, Overground, DLR and tram line ({line_count} lines). Strikes are announced per line, so pick the ones you travel on to ignore the rest."
         }
       }
     }

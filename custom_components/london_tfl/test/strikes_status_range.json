@@ -1,0 +1,630 @@
+[
+ {
+  "id": "bakerloo",
+  "name": "Bakerloo",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Thursday 17 until 11:59 Friday 18 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-17T12:00:00Z",
+      "toDate": "2026-12-18T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Saturday 19 until 11:59 Sunday 20 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-19T12:00:00Z",
+      "toDate": "2026-12-20T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   }
+  ]
+ },
+ {
+  "id": "central",
+  "name": "Central",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 9,
+    "statusSeverityDescription": "Minor Delays",
+    "reason": "Central Line: No service between White City and Liverpool Street and MINOR DELAYS on the rest of the line due to strike action. Tube services will finish early tonight so please complete your journey by 21:00.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-11-26T15:18:00Z",
+      "toDate": "2026-11-27T01:29:00Z",
+      "isNow": true
+     }
+    ],
+    "disruption": {
+     "category": "RealTime",
+     "categoryDescription": "RealTime"
+    }
+   },
+   {
+    "statusSeverity": 3,
+    "statusSeverityDescription": "Part Suspended",
+    "reason": "Central Line: No service between White City and Liverpool Street and MINOR DELAYS on the rest of the line due to strike action. Tube services will finish early tonight so please complete your journey by 21:00.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-11-26T15:18:00Z",
+      "toDate": "2026-11-26T18:32:00Z",
+      "isNow": true
+     }
+    ],
+    "disruption": {
+     "category": "RealTime",
+     "categoryDescription": "RealTime"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Thursday 17 until 11:59 Friday 18 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-17T12:00:00Z",
+      "toDate": "2026-12-18T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Saturday 19 until 11:59 Sunday 20 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-19T12:00:00Z",
+      "toDate": "2026-12-20T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   }
+  ]
+ },
+ {
+  "id": "circle",
+  "name": "Circle",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 2,
+    "statusSeverityDescription": "Suspended",
+    "reason": "Circle Line: No service on the entire line due to strike action. Tube services will finish early tonight so please complete your journey by 21:00.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-11-26T12:12:00Z",
+      "toDate": "2026-11-26T18:32:00Z",
+      "isNow": true
+     }
+    ],
+    "disruption": {
+     "category": "RealTime",
+     "categoryDescription": "RealTime"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Thursday 17 until 11:59 Friday 18 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-17T12:00:00Z",
+      "toDate": "2026-12-18T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Saturday 19 until 11:59 Sunday 20 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-19T12:00:00Z",
+      "toDate": "2026-12-20T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   }
+  ]
+ },
+ {
+  "id": "district",
+  "name": "District",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 9,
+    "statusSeverityDescription": "Minor Delays",
+    "reason": "District Line: Minor delays due to strike action. If you're travelling beyond Earl's Court, please take the first train and change there. Tube services will finish early tonight so please complete your journey by 21:00.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-11-26T14:30:00Z",
+      "toDate": "2026-11-27T01:29:00Z",
+      "isNow": true
+     }
+    ],
+    "disruption": {
+     "category": "RealTime",
+     "categoryDescription": "RealTime"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Thursday 17 until 11:59 Friday 18 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-17T12:00:00Z",
+      "toDate": "2026-12-18T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Saturday 19 until 11:59 Sunday 20 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-19T12:00:00Z",
+      "toDate": "2026-12-20T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 5,
+    "statusSeverityDescription": "Part Closure",
+    "reason": "District Line: Saturday 5 and Sunday 6 December, no service between Earl's Court and Wimbledon due to planned engineering work.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-05T04:30:00Z",
+      "toDate": "2026-12-07T01:29:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "PlannedWork",
+     "categoryDescription": "PlannedWork"
+    }
+   }
+  ]
+ },
+ {
+  "id": "dlr",
+  "name": "DLR",
+  "modeName": "dlr",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "elizabeth",
+  "name": "Elizabeth line",
+  "modeName": "elizabeth-line",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "hammersmith-city",
+  "name": "Hammersmith & City",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Thursday 17 until 11:59 Friday 18 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-17T12:00:00Z",
+      "toDate": "2026-12-18T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Saturday 19 until 11:59 Sunday 20 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-19T12:00:00Z",
+      "toDate": "2026-12-20T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   }
+  ]
+ },
+ {
+  "id": "jubilee",
+  "name": "Jubilee",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Thursday 17 until 11:59 Friday 18 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-17T12:00:00Z",
+      "toDate": "2026-12-18T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Saturday 19 until 11:59 Sunday 20 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-19T12:00:00Z",
+      "toDate": "2026-12-20T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   }
+  ]
+ },
+ {
+  "id": "liberty",
+  "name": "Liberty",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "lioness",
+  "name": "Lioness",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "metropolitan",
+  "name": "Metropolitan",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Thursday 17 until 11:59 Friday 18 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-17T12:00:00Z",
+      "toDate": "2026-12-18T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Saturday 19 until 11:59 Sunday 20 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-19T12:00:00Z",
+      "toDate": "2026-12-20T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   }
+  ]
+ },
+ {
+  "id": "mildmay",
+  "name": "Mildmay",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 6,
+    "statusSeverityDescription": "Severe Delays",
+    "reason": "Mildmay line: Severe delays between Stratford and Richmond due to an earlier signal failure at Willesden Junction.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-11-26T14:39:00Z",
+      "toDate": "2026-11-27T01:29:00Z",
+      "isNow": true
+     }
+    ],
+    "disruption": {
+     "category": "RealTime",
+     "categoryDescription": "RealTime"
+    }
+   }
+  ]
+ },
+ {
+  "id": "northern",
+  "name": "Northern",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Thursday 17 until 11:59 Friday 18 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-17T12:00:00Z",
+      "toDate": "2026-12-18T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Saturday 19 until 11:59 Sunday 20 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-19T12:00:00Z",
+      "toDate": "2026-12-20T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   }
+  ]
+ },
+ {
+  "id": "piccadilly",
+  "name": "Piccadilly",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Thursday 17 until 11:59 Friday 18 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-17T12:00:00Z",
+      "toDate": "2026-12-18T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Saturday 19 until 11:59 Sunday 20 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-19T12:00:00Z",
+      "toDate": "2026-12-20T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   }
+  ]
+ },
+ {
+  "id": "suffragette",
+  "name": "Suffragette",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "tram",
+  "name": "Tram",
+  "modeName": "tram",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "victoria",
+  "name": "Victoria",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Thursday 17 until 11:59 Friday 18 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-17T12:00:00Z",
+      "toDate": "2026-12-18T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Saturday 19 until 11:59 Sunday 20 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-19T12:00:00Z",
+      "toDate": "2026-12-20T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   }
+  ]
+ },
+ {
+  "id": "waterloo-city",
+  "name": "Waterloo & City",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Thursday 17 until 11:59 Friday 18 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-17T12:00:00Z",
+      "toDate": "2026-12-18T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   },
+   {
+    "statusSeverity": 0,
+    "statusSeverityDescription": "Special Service",
+    "reason": "TUBE STRIKE: Some London Underground Tube drivers are planning to take strike action from 12:00 Saturday 19 until 11:59 Sunday 20 December. There is likely to be some disruption across all Underground lines, but trains are expected to run on most lines.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-12-19T12:00:00Z",
+      "toDate": "2026-12-20T11:59:00Z",
+      "isNow": false
+     }
+    ],
+    "disruption": {
+     "category": "Information",
+     "categoryDescription": "Information"
+    }
+   }
+  ]
+ },
+ {
+  "id": "weaver",
+  "name": "Weaver",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "windrush",
+  "name": "Windrush",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ }
+]
