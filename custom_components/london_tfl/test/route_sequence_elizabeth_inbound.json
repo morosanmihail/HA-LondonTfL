@@ -1,0 +1,514 @@
+{
+ "lineId": "elizabeth",
+ "direction": "inbound",
+ "stopPointSequences": [
+  {
+   "branchId": 0,
+   "direction": "inbound",
+   "stopPoint": [
+    {
+     "id": "910GHTRWTM4",
+     "name": "Heathrow Terminal 4 Rail Station",
+     "lat": 51.459,
+     "lon": -0.446
+    },
+    {
+     "id": "910GHTRWAPT",
+     "name": "Heathrow Terminals 2 & 3 Rail Station",
+     "lat": 51.472,
+     "lon": -0.454
+    },
+    {
+     "id": "910GHAYESAH",
+     "name": "Hayes & Harlington Rail Station",
+     "lat": 51.503,
+     "lon": -0.421
+    },
+    {
+     "id": "910GSTHALL",
+     "name": "Southall Rail Station",
+     "lat": 51.506,
+     "lon": -0.379
+    },
+    {
+     "id": "910GHANWELL",
+     "name": "Hanwell Rail Station",
+     "lat": 51.512,
+     "lon": -0.339
+    },
+    {
+     "id": "910GWEALING",
+     "name": "West Ealing Rail Station",
+     "lat": 51.514,
+     "lon": -0.32
+    },
+    {
+     "id": "910GEALINGB",
+     "name": "Ealing Broadway Rail Station",
+     "lat": 51.515,
+     "lon": -0.302
+    },
+    {
+     "id": "910GACTONML",
+     "name": "Acton Main Line Rail Station",
+     "lat": 51.517,
+     "lon": -0.267
+    },
+    {
+     "id": "910GPADTON",
+     "name": "London Paddington Rail Station",
+     "lat": 51.516,
+     "lon": -0.177
+    },
+    {
+     "id": "910GPADTLL",
+     "name": "Paddington Rail Station",
+     "lat": 51.517,
+     "lon": -0.176
+    },
+    {
+     "id": "910GBONDST",
+     "name": "Bond Street Rail Station",
+     "lat": 51.513,
+     "lon": -0.149
+    },
+    {
+     "id": "910GTOTCTRD",
+     "name": "Tottenham Court Road Rail Station",
+     "lat": 51.516,
+     "lon": -0.131
+    },
+    {
+     "id": "910GFRNDXR",
+     "name": "Farringdon Rail Station",
+     "lat": 51.52,
+     "lon": -0.105
+    },
+    {
+     "id": "910GLIVSTLL",
+     "name": "Liverpool Street Rail Station",
+     "lat": 51.518,
+     "lon": -0.083
+    },
+    {
+     "id": "910GWCHAPXR",
+     "name": "Whitechapel Rail Station",
+     "lat": 51.519,
+     "lon": -0.06
+    },
+    {
+     "id": "910GCANWHRF",
+     "name": "Canary Wharf Rail Station",
+     "lat": 51.504,
+     "lon": -0.019
+    },
+    {
+     "id": "910GCUSTMHS",
+     "name": "Custom House Rail Station",
+     "lat": 51.519,
+     "lon": 0.027
+    },
+    {
+     "id": "910GWOLWXR",
+     "name": "Woolwich Rail Station",
+     "lat": 51.492,
+     "lon": 0.07
+    },
+    {
+     "id": "910GABWDXR",
+     "name": "Abbey Wood Rail Station",
+     "lat": 51.491,
+     "lon": 0.121
+    },
+    {
+     "id": "910GSTFD",
+     "name": "Stratford (London) Rail Station",
+     "lat": 51.542,
+     "lon": -0.002
+    },
+    {
+     "id": "910GMRYLAND",
+     "name": "Maryland Rail Station",
+     "lat": 51.546,
+     "lon": 0.006
+    },
+    {
+     "id": "910GFRSTGT",
+     "name": "Forest Gate Rail Station",
+     "lat": 51.549,
+     "lon": 0.024
+    },
+    {
+     "id": "910GMANRPK",
+     "name": "Manor Park Rail Station",
+     "lat": 51.552,
+     "lon": 0.046
+    },
+    {
+     "id": "910GILFORD",
+     "name": "Ilford Rail Station",
+     "lat": 51.559,
+     "lon": 0.07
+    },
+    {
+     "id": "910GSVNKNGS",
+     "name": "Seven Kings Rail Station",
+     "lat": 51.564,
+     "lon": 0.097
+    },
+    {
+     "id": "910GGODMAYS",
+     "name": "Goodmayes Rail Station",
+     "lat": 51.566,
+     "lon": 0.111
+    },
+    {
+     "id": "910GCHDWLHT",
+     "name": "Chadwell Heath Rail Station",
+     "lat": 51.568,
+     "lon": 0.129
+    },
+    {
+     "id": "910GROMFORD",
+     "name": "Romford Rail Station",
+     "lat": 51.575,
+     "lon": 0.183
+    },
+    {
+     "id": "910GGIDEAPK",
+     "name": "Gidea Park Rail Station",
+     "lat": 51.582,
+     "lon": 0.206
+    },
+    {
+     "id": "910GHRLDWOD",
+     "name": "Harold Wood Rail Station",
+     "lat": 51.593,
+     "lon": 0.233
+    },
+    {
+     "id": "910GBRTWOOD",
+     "name": "Brentwood Rail Station",
+     "lat": 51.614,
+     "lon": 0.3
+    },
+    {
+     "id": "910GSHENFLD",
+     "name": "Shenfield Rail Station",
+     "lat": 51.631,
+     "lon": 0.33
+    },
+    {
+     "id": "910GHTRWTM5",
+     "name": "Heathrow Terminal 5 Rail Station",
+     "lat": 51.472,
+     "lon": -0.49
+    },
+    {
+     "id": "910GLIVST",
+     "name": "London Liverpool Street Rail Station",
+     "lat": 51.518,
+     "lon": -0.081
+    },
+    {
+     "id": "910GRDNGSTN",
+     "name": "Reading Rail Station",
+     "lat": 51.459,
+     "lon": -0.972
+    },
+    {
+     "id": "910GTWYFORD",
+     "name": "Twyford Rail Station",
+     "lat": 51.476,
+     "lon": -0.863
+    },
+    {
+     "id": "910GMDNHEAD",
+     "name": "Maidenhead Rail Station",
+     "lat": 51.519,
+     "lon": -0.723
+    },
+    {
+     "id": "910GTAPLOW",
+     "name": "Taplow Rail Station",
+     "lat": 51.524,
+     "lon": -0.681
+    },
+    {
+     "id": "910GBNHAM",
+     "name": "Burnham (Berks) Rail Station",
+     "lat": 51.524,
+     "lon": -0.646
+    },
+    {
+     "id": "910GSLOUGH",
+     "name": "Slough Rail Station",
+     "lat": 51.512,
+     "lon": -0.592
+    },
+    {
+     "id": "910GLANGLEY",
+     "name": "Langley (Berks) Rail Station",
+     "lat": 51.508,
+     "lon": -0.542
+    },
+    {
+     "id": "910GIVER",
+     "name": "Iver Rail Station",
+     "lat": 51.509,
+     "lon": -0.507
+    },
+    {
+     "id": "910GWDRYTON",
+     "name": "West Drayton Rail Station",
+     "lat": 51.51,
+     "lon": -0.472
+    }
+   ]
+  }
+ ],
+ "orderedLineRoutes": [
+  {
+   "name": "Heathrow Terminal 4 &harr;  London Paddington ",
+   "naptanIds": [
+    "910GHTRWTM4",
+    "910GHTRWAPT",
+    "910GHAYESAH",
+    "910GSTHALL",
+    "910GHANWELL",
+    "910GWEALING",
+    "910GEALINGB",
+    "910GACTONML",
+    "910GPADTON"
+   ],
+   "serviceType": "Regular"
+  },
+  {
+   "name": "Heathrow Terminal 4 &harr;  Abbey Wood ",
+   "naptanIds": [
+    "910GHTRWTM4",
+    "910GHTRWAPT",
+    "910GHAYESAH",
+    "910GSTHALL",
+    "910GHANWELL",
+    "910GWEALING",
+    "910GEALINGB",
+    "910GACTONML",
+    "910GPADTLL",
+    "910GBONDST",
+    "910GTOTCTRD",
+    "910GFRNDXR",
+    "910GLIVSTLL",
+    "910GWCHAPXR",
+    "910GCANWHRF",
+    "910GCUSTMHS",
+    "910GWOLWXR",
+    "910GABWDXR"
+   ],
+   "serviceType": "Regular"
+  },
+  {
+   "name": "Heathrow Terminal 4 &harr;  Shenfield ",
+   "naptanIds": [
+    "910GHTRWTM4",
+    "910GHTRWAPT",
+    "910GHAYESAH",
+    "910GSTHALL",
+    "910GHANWELL",
+    "910GWEALING",
+    "910GEALINGB",
+    "910GACTONML",
+    "910GPADTLL",
+    "910GBONDST",
+    "910GTOTCTRD",
+    "910GFRNDXR",
+    "910GLIVSTLL",
+    "910GWCHAPXR",
+    "910GSTFD",
+    "910GMRYLAND",
+    "910GFRSTGT",
+    "910GMANRPK",
+    "910GILFORD",
+    "910GSVNKNGS",
+    "910GGODMAYS",
+    "910GCHDWLHT",
+    "910GROMFORD",
+    "910GGIDEAPK",
+    "910GHRLDWOD",
+    "910GBRTWOOD",
+    "910GSHENFLD"
+   ],
+   "serviceType": "Regular"
+  },
+  {
+   "name": "Heathrow Terminal 5 &harr;  London Paddington ",
+   "naptanIds": [
+    "910GHTRWTM5",
+    "910GHTRWAPT",
+    "910GHAYESAH",
+    "910GSTHALL",
+    "910GHANWELL",
+    "910GWEALING",
+    "910GEALINGB",
+    "910GACTONML",
+    "910GPADTON"
+   ],
+   "serviceType": "Regular"
+  },
+  {
+   "name": "Heathrow Terminal 5 &harr;  Abbey Wood ",
+   "naptanIds": [
+    "910GHTRWTM5",
+    "910GHTRWAPT",
+    "910GHAYESAH",
+    "910GSTHALL",
+    "910GHANWELL",
+    "910GWEALING",
+    "910GEALINGB",
+    "910GACTONML",
+    "910GPADTLL",
+    "910GBONDST",
+    "910GTOTCTRD",
+    "910GFRNDXR",
+    "910GLIVSTLL",
+    "910GWCHAPXR",
+    "910GCANWHRF",
+    "910GCUSTMHS",
+    "910GWOLWXR",
+    "910GABWDXR"
+   ],
+   "serviceType": "Regular"
+  },
+  {
+   "name": "Heathrow Terminal 5 &harr;  Shenfield ",
+   "naptanIds": [
+    "910GHTRWTM5",
+    "910GHTRWAPT",
+    "910GHAYESAH",
+    "910GSTHALL",
+    "910GHANWELL",
+    "910GWEALING",
+    "910GEALINGB",
+    "910GACTONML",
+    "910GPADTLL",
+    "910GBONDST",
+    "910GTOTCTRD",
+    "910GFRNDXR",
+    "910GLIVSTLL",
+    "910GWCHAPXR",
+    "910GSTFD",
+    "910GMRYLAND",
+    "910GFRSTGT",
+    "910GMANRPK",
+    "910GILFORD",
+    "910GSVNKNGS",
+    "910GGODMAYS",
+    "910GCHDWLHT",
+    "910GROMFORD",
+    "910GGIDEAPK",
+    "910GHRLDWOD",
+    "910GBRTWOOD",
+    "910GSHENFLD"
+   ],
+   "serviceType": "Regular"
+  },
+  {
+   "name": "London Liverpool Street &harr;  Shenfield ",
+   "naptanIds": [
+    "910GLIVST",
+    "910GSTFD",
+    "910GMRYLAND",
+    "910GFRSTGT",
+    "910GMANRPK",
+    "910GILFORD",
+    "910GSVNKNGS",
+    "910GGODMAYS",
+    "910GCHDWLHT",
+    "910GROMFORD",
+    "910GGIDEAPK",
+    "910GHRLDWOD",
+    "910GBRTWOOD",
+    "910GSHENFLD"
+   ],
+   "serviceType": "Regular"
+  },
+  {
+   "name": "Paddington &harr;  Shenfield ",
+   "naptanIds": [
+    "910GPADTLL",
+    "910GBONDST",
+    "910GTOTCTRD",
+    "910GFRNDXR",
+    "910GLIVSTLL",
+    "910GWCHAPXR",
+    "910GSTFD",
+    "910GMRYLAND",
+    "910GFRSTGT",
+    "910GMANRPK",
+    "910GILFORD",
+    "910GSVNKNGS",
+    "910GGODMAYS",
+    "910GCHDWLHT",
+    "910GROMFORD",
+    "910GGIDEAPK",
+    "910GHRLDWOD",
+    "910GBRTWOOD",
+    "910GSHENFLD"
+   ],
+   "serviceType": "Regular"
+  },
+  {
+   "name": "Reading &harr;  London Paddington ",
+   "naptanIds": [
+    "910GRDNGSTN",
+    "910GTWYFORD",
+    "910GMDNHEAD",
+    "910GTAPLOW",
+    "910GBNHAM",
+    "910GSLOUGH",
+    "910GLANGLEY",
+    "910GIVER",
+    "910GWDRYTON",
+    "910GHAYESAH",
+    "910GSTHALL",
+    "910GHANWELL",
+    "910GWEALING",
+    "910GEALINGB",
+    "910GACTONML",
+    "910GPADTON"
+   ],
+   "serviceType": "Regular"
+  },
+  {
+   "name": "Reading &harr;  Abbey Wood ",
+   "naptanIds": [
+    "910GRDNGSTN",
+    "910GTWYFORD",
+    "910GMDNHEAD",
+    "910GTAPLOW",
+    "910GBNHAM",
+    "910GSLOUGH",
+    "910GLANGLEY",
+    "910GIVER",
+    "910GWDRYTON",
+    "910GHAYESAH",
+    "910GSTHALL",
+    "910GHANWELL",
+    "910GWEALING",
+    "910GEALINGB",
+    "910GACTONML",
+    "910GPADTLL",
+    "910GBONDST",
+    "910GTOTCTRD",
+    "910GFRNDXR",
+    "910GLIVSTLL",
+    "910GWCHAPXR",
+    "910GCANWHRF",
+    "910GCUSTMHS",
+    "910GWOLWXR",
+    "910GABWDXR"
+   ],
+   "serviceType": "Regular"
+  }
+ ]
+}

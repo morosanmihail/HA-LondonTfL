@@ -27,6 +27,7 @@ from custom_components.london_tfl.network import (
     RailDataLDBWS,
     request,
 )
+from custom_components.london_tfl.routes import LineRoutes, get_line_routes
 
 
 def get_destination(entry, use_destination_name=False):
@@ -336,6 +337,8 @@ class TfLData:
         nr_api_key: Optional[str] = None,
         rdm_api_key: Optional[str] = None,
         crs: Optional[str] = None,
+        direction: Optional[str] = None,
+        calling_at: Optional[str] = None,
     ):
         self._raw_result = []
         self._last_update = None
@@ -358,6 +361,48 @@ class TfLData:
         # Platform name -> {(line id, "inbound"/"outbound")} seen in live data at this station. Kept across refreshes:
         # where live data is sparse (the District west of Earl's Court) a direction may be seen only now and then.
         self._platform_directions: dict = {}
+        # Route filters: keep only trains heading this way ("Eastbound") and/or calling at this stop id.
+        self.direction = (direction or "").strip()
+        self.calling_at = (calling_at or "").strip()
+        self._routes = LineRoutes()
+
+    def has_route_filter(self) -> bool:
+        return bool(self.direction or self.calling_at)
+
+    async def fetch_routes(self, force: bool = False) -> LineRoutes:
+        """Load the line's route data (cached for a day across all stops) when this stop filters by it."""
+        if self.has_route_filter() or force:
+            self._routes = await get_line_routes(self.line, force)
+        return self._routes
+
+    def set_routes(self, routes: LineRoutes) -> None:
+        """Set route data directly (e.g. from local files for testing)."""
+        self._routes = routes
+
+    def get_routes(self) -> LineRoutes:
+        return self._routes
+
+    def _keeps_by_route(self, item) -> bool:
+        """Whether a live train passes this stop's direction and calling-at filters.
+
+        Without route data nothing passes: showing trains in both directions is what the filter is there to stop.
+        """
+        if not self.has_route_filter():
+            return True
+        if not self._routes:
+            return False
+        destination = item.get("destinationNaptanId") if isinstance(item, dict) else None
+        if not destination:
+            return False
+        if self.direction and self._routes.direction_of(self.station, destination) != self.direction:
+            return False
+        if self.calling_at and not self._routes.calls_at(self.station, self.calling_at, destination):
+            return False
+        return True
+
+    def filter_by_route(self) -> None:
+        if self.has_route_filter():
+            self._raw_result = [item for item in self._raw_result if self._keeps_by_route(item)]
 
     async def fetch(self, hass) -> Union[str, list]:
         url = self.url(station=self.station, test=str(uuid.uuid4()))
@@ -691,9 +736,16 @@ class TfLData:
 
     def populate(self, json_data, filter_platform):
         self._raw_result = json_data
+        if not self._station_name:
+            # Named before any filtering, so a stop whose filters leave nothing right now still has its name.
+            self._station_name = next(
+                (item.get("stationName") for item in json_data if isinstance(item, dict) and item.get("stationName")),
+                "",
+            )
         self._filter_platform = filter_platform or ""
         self._learn_platform_directions(json_data)
         self.filter_by_platform(filter_platform)
+        self.filter_by_route()
         self._last_update = datetime.now()
 
     def _learn_platform_directions(self, json_data) -> None:

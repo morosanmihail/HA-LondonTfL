@@ -19,17 +19,22 @@ from .const import (
     CONF_RDM_API_KEY,
     CONF_CRS,
     CONF_PLATFORM,
+    CONF_DIRECTION,
+    CONF_CALLING_AT,
+    CONF_CALLING_AT_NAME,
     CRS_LOOKUP_URL,
     DEFAULT_MAX,
     DEFAULT_METHODS,
     DOMAIN,
     NR_LEGACY_REGISTRATION_URL,
     NR_REGISTRATION_URL,
+    ROUTE_FILTER_METHODS,
     TFL_LINES_URL,
     TFL_STATIONS_URL,
 )
 from .codes import atco_to_crs, is_valid_crs, load_crs_codes
 from .network import request
+from .routes import LineRoutes, get_line_routes
 from .tfl_data import TfLData
 
 _LOGGER = logging.getLogger(__name__)
@@ -166,6 +171,77 @@ def _platform_schema(platforms: list[str], current: str = "") -> vol.Schema:
     return vol.Schema(
         {vol.Optional(CONF_PLATFORM, description={"suggested_value": current}): field}
     )
+
+
+async def _fetch_routes(stop: dict[str, Any]) -> LineRoutes:
+    """Route data for the stop's line(s), if its mode can be filtered by direction / calling-at station."""
+    if stop.get(CONF_METHOD) not in ROUTE_FILTER_METHODS:
+        return LineRoutes()
+    try:
+        return await get_line_routes(stop.get(CONF_LINE, ""))
+    except Exception:
+        _LOGGER.warning("Failed to fetch route data for %s", stop.get(CONF_LINE), exc_info=True)
+        return LineRoutes()
+
+
+def _route_fields(routes: LineRoutes, station: str, stop: dict[str, Any] | None = None) -> dict:
+    """Direction and calling-at dropdowns for a stop, built from the stations its line actually serves from here.
+
+    Empty when there is no route data, or the station is on none of the routes: then the fields would offer nothing.
+    """
+    stop = stop or {}
+    directions = routes.directions_from(station) if routes else []
+    stops_after = routes.stops_after(station) if routes else {}
+    fields: dict = {}
+    current_direction = stop.get(CONF_DIRECTION) or ""
+    current_via = stop.get(CONF_CALLING_AT) or ""
+    if directions:
+        options = list(directions)
+        if current_direction and current_direction not in options:
+            options.insert(0, current_direction)
+        fields[vol.Optional(CONF_DIRECTION, description={"suggested_value": current_direction or None})] = (
+            selector.SelectSelector(
+                selector.SelectSelectorConfig(options=options, mode=selector.SelectSelectorMode.DROPDOWN)
+            )
+        )
+    if stops_after:
+        options = [selector.SelectOptionDict(value=sid, label=name) for sid, name in stops_after.items()]
+        if current_via and current_via not in stops_after:
+            label = stop.get(CONF_CALLING_AT_NAME) or current_via
+            options.insert(0, selector.SelectOptionDict(value=current_via, label=label))
+        fields[vol.Optional(CONF_CALLING_AT, description={"suggested_value": current_via or None})] = (
+            selector.SelectSelector(
+                selector.SelectSelectorConfig(options=options, mode=selector.SelectSelectorMode.DROPDOWN)
+            )
+        )
+    return fields
+
+
+def _route_values(
+    user_input: dict[str, Any], routes: LineRoutes, station: str, stop: dict[str, Any] | None = None
+) -> tuple[dict[str, str], dict[str, str]]:
+    """The submitted direction / calling-at choice as stop data, and any errors.
+
+    A calling-at station the other way from the chosen direction would leave the stop showing no trains at all, so
+    that combination is refused.
+    """
+    stop = stop or {}
+    if stop.get(CONF_METHOD) not in ROUTE_FILTER_METHODS and not (
+        stop.get(CONF_DIRECTION) or stop.get(CONF_CALLING_AT)
+    ):
+        return {}, {}
+    direction = (user_input.get(CONF_DIRECTION) or "").strip()
+    via = (user_input.get(CONF_CALLING_AT) or "").strip()
+    errors: dict[str, str] = {}
+    if direction and via and routes and routes.direction_of(station, via) != direction:
+        errors[CONF_CALLING_AT] = "calling_at_wrong_direction"
+    if via:
+        name = routes.names.get(via) if routes else None
+        if not name and via == stop.get(CONF_CALLING_AT):
+            name = stop.get(CONF_CALLING_AT_NAME)
+    else:
+        name = ""
+    return {CONF_DIRECTION: direction, CONF_CALLING_AT: via, CONF_CALLING_AT_NAME: name or via}, errors
 
 
 def _platform_value(user_input: dict[str, Any]) -> str:
@@ -410,9 +486,15 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_platform(self, user_input: dict[str, Any] | None = None):
-        """Pick a platform filter from the platforms the station currently reports."""
+        """Pick a platform filter from the platforms the station currently reports (and a direction, where offered)."""
+        errors: dict[str, str] = {}
+        routes = await _fetch_routes(self._pending_stop)
+        station = self._pending_stop[CONF_STATION]
         if user_input is not None:
+            route_data, errors = _route_values(user_input, routes, station, self._pending_stop)
+        if user_input is not None and not errors:
             self._pending_stop[CONF_PLATFORM] = _platform_value(user_input)
+            self._pending_stop.update(route_data)
             self.data[CONF_STOPS].append(self._pending_stop)
             self._pending_stop = {}
             if self._pending_add_another:
@@ -426,9 +508,15 @@ class LondonTfLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(title=title, data=self.data)
 
         platforms = await _fetch_platforms(self.hass, self._pending_stop)
+        data_schema = vol.Schema(
+            {**_platform_schema(platforms).schema, **_route_fields(routes, station)}
+        )
+        if user_input is not None:
+            data_schema = self.add_suggested_values_to_schema(data_schema, user_input)
         return self.async_show_form(
             step_id="platform",
-            data_schema=_platform_schema(platforms),
+            data_schema=data_schema,
+            errors=errors,
             description_placeholders={
                 "stop_name": self._pending_stop.get("station_display_name", ""),
                 "platform_count": str(len(platforms)),
@@ -600,17 +688,29 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         )
 
     async def async_step_add_platform(self, user_input: dict[str, Any] | None = None):
-        """Step 4 of adding a stop: pick a platform filter from live platform names."""
+        """Step 4 of adding a stop: pick a platform filter from live platform names (and a direction, where offered)."""
+        errors: dict[str, str] = {}
+        routes = await _fetch_routes(self._pending_stop)
+        station = self._pending_stop[CONF_STATION]
         if user_input is not None:
+            route_data, errors = _route_values(user_input, routes, station, self._pending_stop)
+        if user_input is not None and not errors:
             self._pending_stop[CONF_PLATFORM] = _platform_value(user_input)
+            self._pending_stop.update(route_data)
             self._stops.append(self._pending_stop)
             self._pending_stop = {}
             return self._save()
 
         platforms = await _fetch_platforms(self.hass, self._pending_stop)
+        data_schema = vol.Schema(
+            {**_platform_schema(platforms).schema, **_route_fields(routes, station)}
+        )
+        if user_input is not None:
+            data_schema = self.add_suggested_values_to_schema(data_schema, user_input)
         return self.async_show_form(
             step_id="add_platform",
-            data_schema=_platform_schema(platforms),
+            data_schema=data_schema,
+            errors=errors,
             description_placeholders={
                 "stop_name": self._stop_label(self._pending_stop),
                 "platform_count": str(len(platforms)),
@@ -641,6 +741,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             stop.get(CONF_METHOD, ""), stop.get(CONF_LINE, "")
         )
         errors: dict[str, str] = {}
+        routes = await _fetch_routes(stop)
+        route_data: dict[str, str] = {}
 
         if user_input is not None:
             nr_data: dict[str, Any] = {}
@@ -658,11 +760,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         display_name="",
                     ),
                 )
+            route_data, route_errors = _route_values(user_input, routes, stop[CONF_STATION], stop)
+            errors.update(route_errors)
+            if not routes and stop.get(CONF_METHOD) in ROUTE_FILTER_METHODS:
+                # No route data to offer the fields from right now: keep what is configured rather than wipe it.
+                route_data = {k: stop.get(k, "") for k in (CONF_DIRECTION, CONF_CALLING_AT, CONF_CALLING_AT_NAME)}
 
         if user_input is not None and not errors:
             self._stops[self._editing_index] = {
                 **stop,
                 **nr_data,
+                **route_data,
                 CONF_MAX: user_input[CONF_MAX],
                 CONF_PLATFORM: _platform_value(user_input),
                 CONF_SHORTEN_STATION_NAMES: user_input[CONF_SHORTEN_STATION_NAMES],
@@ -700,6 +808,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_MAX, default=stop.get(CONF_MAX, DEFAULT_MAX)
                     ): cv.positive_int,
                     **platform_field,
+                    **_route_fields(routes, stop[CONF_STATION], stop),
                 }
             ),
         )

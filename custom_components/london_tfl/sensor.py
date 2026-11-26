@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from datetime import timedelta
@@ -22,6 +23,9 @@ from .const import (
     CONF_LINE,
     CONF_STATION,
     CONF_PLATFORM,
+    CONF_DIRECTION,
+    CONF_CALLING_AT,
+    CONF_CALLING_AT_NAME,
     CONF_MAX,
     CONF_NR_API_KEY,
     CONF_RDM_API_KEY,
@@ -50,6 +54,9 @@ CONFIG_STOP = vol.Schema(
         vol.Required(CONF_STATION): cv.string,
         vol.Optional(CONF_METHOD, default=""): cv.string,
         vol.Optional(CONF_PLATFORM, default=""): cv.string,
+        vol.Optional(CONF_DIRECTION, default=""): cv.string,
+        vol.Optional(CONF_CALLING_AT, default=""): cv.string,
+        vol.Optional(CONF_CALLING_AT_NAME, default=""): cv.string,
         vol.Optional(CONF_MAX, default=DEFAULT_MAX): cv.positive_int,
         vol.Optional(CONF_SHORTEN_STATION_NAMES, default=False): cv.boolean,
         vol.Optional(CONF_RDM_API_KEY): cv.string,
@@ -87,6 +94,8 @@ async def async_setup_entry(
                 nr_api_key=stop.get(CONF_NR_API_KEY),
                 rdm_api_key=stop.get(CONF_RDM_API_KEY),
                 crs=stop.get(CONF_CRS),
+                direction=stop.get(CONF_DIRECTION),
+                calling_at=stop.get(CONF_CALLING_AT),
             )
             common_kwargs = dict(
                 name=name,
@@ -103,6 +112,9 @@ async def async_setup_entry(
                     else False
                 ),
                 nr_api_key=stop.get(CONF_NR_API_KEY),
+                direction=stop.get(CONF_DIRECTION) or "",
+                calling_at=stop.get(CONF_CALLING_AT) or "",
+                calling_at_name=stop.get(CONF_CALLING_AT_NAME) or "",
                 tfl_data=shared_data,
             )
             sensors.append(LondonTfLSensor(departure_mode="realtime", **common_kwargs))
@@ -143,6 +155,8 @@ async def async_setup_platform(
                 nr_api_key=stop.get(CONF_NR_API_KEY),
                 rdm_api_key=stop.get(CONF_RDM_API_KEY),
                 crs=stop.get(CONF_CRS),
+                direction=stop.get(CONF_DIRECTION),
+                calling_at=stop.get(CONF_CALLING_AT),
             )
             common_kwargs = dict(
                 name=name,
@@ -153,6 +167,9 @@ async def async_setup_platform(
                 max=stop[CONF_MAX],
                 shortenStationNames=stop[CONF_SHORTEN_STATION_NAMES],
                 nr_api_key=stop.get(CONF_NR_API_KEY),
+                direction=stop.get(CONF_DIRECTION) or "",
+                calling_at=stop.get(CONF_CALLING_AT) or "",
+                calling_at_name=stop.get(CONF_CALLING_AT_NAME) or "",
                 tfl_data=shared_data,
             )
             sensors.append(LondonTfLSensor(departure_mode="realtime", **common_kwargs))
@@ -178,6 +195,9 @@ class LondonTfLSensor(SensorEntity):
         nr_api_key: Optional[str] = None,
         departure_mode: str = "realtime",
         tfl_data: Optional[TfLData] = None,
+        direction: str = "",
+        calling_at: str = "",
+        calling_at_name: str = "",
     ):
         """Initialize the sensor."""
         self._platformname = name
@@ -186,10 +206,12 @@ class LondonTfLSensor(SensorEntity):
         self.line = line
         self.station = station
         self.filter_platform = platform_filter.strip() if platform_filter else ""
-        # The platform filter (usually a direction such as "Westbound") is part of the entity id, so two stops at the same
+        self.direction = (direction or "").strip()
+        self.calling_at = (calling_at or "").strip()
+        self._calling_at_name = (calling_at_name or "").strip()
+        # The filters (platform, direction, calling-at station) are part of the entity id, so two stops at the same
         # station and line that differ only by direction do not share an id.
-        filter_part = "_" + self.filter_platform if self.filter_platform else ""
-        self._name = name + "_" + line + "_" + station + filter_part + mode_suffix
+        self._name = name + "_" + line + "_" + station + self._filter_suffix() + mode_suffix
         self.entity_id = "sensor." + slugify(self._name)
         self.max_items = int(max)
         self._shorten_station_names = shortenStationNames
@@ -199,14 +221,44 @@ class LondonTfLSensor(SensorEntity):
         self._destination = ""
         self._departures = []
         self._tfl_data = tfl_data or TfLData(
-            method=method, line=line, station=station, nr_api_key=nr_api_key
+            method=method,
+            line=line,
+            station=station,
+            nr_api_key=nr_api_key,
+            direction=self.direction,
+            calling_at=self.calling_at,
         )
+
+    def _filter_suffix(self) -> str:
+        suffix = "_" + self.filter_platform if self.filter_platform else ""
+        if self.direction:
+            suffix += "_" + self.direction
+        if self.calling_at:
+            suffix += "_via_" + self.calling_at
+        return suffix
+
+    def _calling_at_label(self) -> str:
+        if not self.calling_at:
+            return ""
+        routes = self._tfl_data.get_routes()
+        name = routes.names.get(self.calling_at) if routes else None
+        name = name or self._calling_at_name or self.calling_at
+        # It goes inside the brackets of the sensor name, so drop a qualifier such as "Stratford (London)" has.
+        name = re.sub(r"\s*\([^)]*\)$", "", name) or name
+        return shortenName(name) if self._shorten_station_names else name
+
+    def _filter_label(self) -> str:
+        """What the stop's filters keep, for its name: "Eastbound", "Platform 4, Eastbound via Stratford"..."""
+        label = ", ".join(part for part in (self.filter_platform, self.direction) if part)
+        via = self._calling_at_label()
+        if via:
+            label = (label + " via " if label else "via ") + via
+        return label
 
     @property
     def unique_id(self):
-        filter_append = "" if not self.filter_platform else ("_" + self.filter_platform)
         mode_suffix = "" if self.departure_mode == "realtime" else ("_" + self.departure_mode)
-        return self._platformname + "_" + self.line + "_" + self.station + filter_append + mode_suffix
+        return self._platformname + "_" + self.line + "_" + self.station + self._filter_suffix() + mode_suffix
 
     @property
     def name(self) -> str:
@@ -221,11 +273,12 @@ class LondonTfLSensor(SensorEntity):
             "all": " (All)",
         }.get(self.departure_mode, "")
 
-        # A stop with a platform filter is one direction: name it after the filter ("Wood Green (Westbound)"), which is
-        # stable. The destination of the next train changes from one refresh to the next and is the same for the opposite
-        # direction of a hub, so it cannot tell two stops apart.
-        if self.filter_platform and station:
-            return "{0} ({1}){2}".format(station, self.filter_platform, mode_suffix)
+        # A filtered stop is one direction: name it after its filters ("Wood Green (Westbound)", "Liverpool Street (via
+        # Stratford)"), which are stable. The destination of the next train changes from one refresh to the next and is
+        # the same for the opposite direction of a hub, so it cannot tell two stops apart.
+        filter_label = self._filter_label()
+        if filter_label and station:
+            return "{0} ({1}){2}".format(station, filter_label, mode_suffix)
         if destination and station:
             return "{0} to {1}{2}".format(station, destination, mode_suffix)
         if station:
@@ -250,6 +303,7 @@ class LondonTfLSensor(SensorEntity):
         """
 
         if self._tfl_data.is_data_stale(self.max_items):
+            await self._tfl_data.fetch_routes()
             result = await self._tfl_data.fetch(self.hass)
             if isinstance(result, str):
                 self._state = result
@@ -272,6 +326,10 @@ class LondonTfLSensor(SensorEntity):
         attributes = {}
         attributes["last_refresh"] = self._tfl_data.get_last_update()
         attributes["line_colours"] = self._tfl_data.get_line_colours()
+        if self.direction:
+            attributes["direction"] = self.direction
+        if self.calling_at:
+            attributes["calling_at"] = self._calling_at_label()
 
         if not self._departures:
             return attributes
