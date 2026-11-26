@@ -24,7 +24,11 @@ SEQUENCES = {
 }
 ARRIVALS = json.loads((FIXTURES / "arrivaldepartures_elizabeth_910GLIVSTLL.json").read_text())
 LIVST = "910GLIVSTLL"
-STATIONS = [{"stationNaptan": LIVST, "commonName": "Liverpool Street", "additionalProperties": []}]
+STFD = "910GSTFD"
+STATIONS = [
+    {"stationNaptan": LIVST, "commonName": "Liverpool Street", "additionalProperties": []},
+    {"stationNaptan": STFD, "commonName": "Stratford (London)", "additionalProperties": []},
+]
 
 
 @pytest.fixture(autouse=True)
@@ -66,11 +70,11 @@ def _options(result, key) -> list:
     return [o["value"] if isinstance(o, dict) else o for o in options]
 
 
-async def _to_platform_step(hass):
+async def _to_platform_step(hass, station=LIVST):
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"method": "elizabeth-line"})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"line": ["elizabeth"]})
-    return await hass.config_entries.flow.async_configure(result["flow_id"], {"station": LIVST, "max": 3})
+    return await hass.config_entries.flow.async_configure(result["flow_id"], {"station": station, "max": 3})
 
 
 async def test_platform_step_offers_direction_and_calling_at(hass) -> None:
@@ -161,3 +165,42 @@ async def test_tube_stops_are_not_offered_route_filters(hass) -> None:
     assert CONF_DIRECTION not in keys and CONF_CALLING_AT not in keys
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert CONF_DIRECTION not in result["data"][CONF_STOPS][0]
+
+
+async def test_liverpool_street_is_offered_once_from_stratford(hass) -> None:
+    result = await _to_platform_step(hass, STFD)
+    options = _options(result, CONF_CALLING_AT)
+    assert "HUBLST" in options
+    assert "910GLIVST" not in options and LIVST not in options
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_CALLING_AT: "HUBLST"})
+    (stop,) = result["data"][CONF_STOPS]
+    assert stop[CONF_CALLING_AT] == "HUBLST"
+    assert stop[CONF_CALLING_AT_NAME] == "Liverpool Street"
+
+
+async def test_stop_saved_with_main_line_liverpool_street_is_shown_as_the_station(hass) -> None:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STOPS: [
+                {
+                    "method": "elizabeth-line",
+                    "line": "elizabeth",
+                    "station": STFD,
+                    "max": 3,
+                    CONF_PLATFORM: "",
+                    CONF_CALLING_AT: "910GLIVST",
+                    CONF_CALLING_AT_NAME: "London Liverpool Street",
+                    "shortenStationNames": False,
+                    "station_display_name": "Stratford",
+                }
+            ]
+        },
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "edit_stop"})
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"stop_index": "0"})
+    field = next(k for k in result["data_schema"].schema if k == CONF_CALLING_AT)
+    assert field.description["suggested_value"] == "HUBLST"
+    assert "910GLIVST" not in _options(result, CONF_CALLING_AT)

@@ -212,3 +212,78 @@ async def test_failed_route_fetch_is_not_retried_every_minute(monkeypatch):
     assert not await get_line_routes("elizabeth")
     assert len(calls) == 2  # one attempt (outbound + inbound), then waits before trying again
     routes_module.clear_route_cache()
+
+
+# Stratford reports the same westbound platform as "Platform 5" for some trains and "Platform Unknown" for others, and a
+# disrupted service may be diverted into Liverpool Street's main line station (910GLIVST) instead of the Elizabeth line
+# platforms (910GLIVSTLL).
+STFD_ARRIVALS = json.loads((FIXTURES / "arrivaldepartures_elizabeth_910GSTFD.json").read_text())
+
+
+def test_liverpool_street_is_one_station_with_two_stops(routes):
+    assert routes.members("HUBLST") == {"910GLIVST", LIVST}
+    assert routes.members("910GLIVST") == {"910GLIVST", LIVST}
+    assert routes.members(STRATFORD) == {STRATFORD}
+    assert routes.station_key("910GLIVST") == "HUBLST"
+    assert routes.station_key(STRATFORD) == STRATFORD  # only one stop on the line: keeps its own id
+    assert routes.station_name("HUBLST") == "Liverpool Street"
+    assert routes.station_name("HUBPAD") == "Paddington"
+
+
+def test_two_level_stations_are_listed_once(routes):
+    stops = routes.stops_after(STRATFORD)
+    assert stops["HUBLST"] == "Liverpool Street"
+    assert stops["HUBPAD"] == "Paddington"
+    assert not {"910GLIVST", LIVST, "910GPADTLL", "910GPADTON"} & set(stops)
+    assert list(stops)[:2] == ["HUBLST", "910GMRYLAND"]
+
+
+def test_calling_at_liverpool_street_includes_trains_diverted_to_the_main_line_station(routes):
+    assert routes.calls_at(STRATFORD, "HUBLST", "910GLIVST")
+    assert routes.calls_at(STRATFORD, "HUBLST", "910GPADTLL")
+    assert routes.calls_at(STRATFORD, "HUBLST", "910GHTRWTM5")
+    assert not routes.calls_at(STRATFORD, "HUBLST", "910GSHENFLD")
+    assert routes.direction_of(STRATFORD, "HUBLST") == "Westbound"
+
+
+def test_a_stop_saved_with_one_level_matches_both(routes):
+    assert routes.calls_at(STRATFORD, "910GLIVST", "910GPADTLL")
+    assert routes.calls_at(STRATFORD, LIVST, "910GLIVST")
+
+
+def test_without_parent_data_stops_stand_alone():
+    bare = LineRoutes.from_json(
+        [
+            {
+                **seq,
+                "stopPointSequences": [
+                    {"stopPoint": [{k: v for k, v in sp.items() if k != "topMostParentId"} for sp in b["stopPoint"]]}
+                    for b in seq["stopPointSequences"]
+                ],
+            }
+            for seq in SEQUENCES
+        ]
+    )
+    assert bare.members("910GLIVST") == {"910GLIVST"}
+    assert "910GLIVST" in bare.stops_after(STRATFORD)
+    assert bare.calls_at(STRATFORD, "910GLIVST", "910GLIVST")
+
+
+def stratford(routes, **filters) -> TfLData:
+    data = TfLData(method="elizabeth-line", line="elizabeth", station=STRATFORD, **filters)
+    data.set_routes(routes)
+    data.populate(list(STFD_ARRIVALS), filters.pop("platform", "") if "platform" in filters else "")
+    return data
+
+
+def test_stratford_to_liverpool_street(routes):
+    expected = ["PADTLL", "HTRWTM5", "LIVST", "PADTLL"]
+    assert destinations(stratford(routes, calling_at="HUBLST")) == expected
+    assert destinations(stratford(routes, direction="Westbound")) == expected
+
+
+def test_platform_filter_at_stratford_loses_trains_reported_as_unknown(routes):
+    data = TfLData(method="elizabeth-line", line="elizabeth", station=STRATFORD, direction="Westbound")
+    data.set_routes(routes)
+    data.populate(list(STFD_ARRIVALS), "5")
+    assert destinations(data) == ["PADTLL"]

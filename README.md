@@ -31,12 +31,30 @@ To follow one direction of a station on the Underground, set the platform filter
 
 ### Elizabeth line: direction and calling-at filters
 
-The Elizabeth line feed has no direction field, and in central London (Liverpool Street, Farringdon, Paddington and others) TfL reports every train as `Platform Unknown`, so a platform filter cannot split the two directions there. Elizabeth line stops therefore offer two extra options on the platform step, both worked out from TfL's route data (fetched once a day) instead of the platform or destination:
+The Elizabeth line feed has no direction field, and its platform information is unreliable: in central London (Liverpool Street, Farringdon, Paddington and others) TfL reports every train as `Platform Unknown`, and at some stations (Stratford, for example) the same platform is reported as `Platform 5` for some trains and `Platform Unknown` for others. A platform filter therefore either can't split the two directions or silently drops trains.
 
-- **Direction of travel**: `Eastbound` or `Westbound`. Keeps every train heading that way, even when it is diverted to another platform, its destination changes by time of day or it terminates early.
-- **Calling at**: a station further along the line, e.g. `Stratford` from Liverpool Street, which keeps the Shenfield trains and leaves out the Abbey Wood ones. TfL does not publish each train's stopping pattern, so this uses the route to the train's destination.
+Elizabeth line stops instead offer two extra options on the platform step (and under **Configure → Edit stop**), both worked out from TfL's route data, fetched once a day, rather than the platform or destination:
 
-A stop using these is named after them, e.g. `Liverpool Street (Eastbound)` or `Liverpool Street (via Stratford)`, and its entity id includes them (`sensor.london_tfl_elizabeth_910glivstll_eastbound`, `sensor.london_tfl_elizabeth_910glivstll_via_910gstfd`). Both can be changed later from the integration's options.
+- **Direction of travel** (`Eastbound` / `Westbound`) keeps every train heading that way. It keeps working when trains are diverted to another platform, change destination by time of day or terminate early. This is usually all you need.
+- **Calling at** keeps only trains whose route from your station passes through (or ends at) the chosen station. Use it when one direction splits into branches you don't want: from Liverpool Street, `Calling at: Stratford` keeps the Shenfield trains and leaves out the Abbey Wood ones.
+
+Things to know:
+
+- **Leave the platform filter blank** on Elizabeth line stops and use these instead.
+- **Liverpool Street and Paddington have two parts on the line**: the Elizabeth line platforms underground and the main line station above. TfL treats each part as a separate station, but the Calling at list shows each of them once, and choosing it matches both. That includes trains that are diverted to terminate at the main line station, as happens at Liverpool Street during disruption.
+- **Calling at follows the route, not the individual train.** TfL doesn't publish each train's stopping pattern, so a train is kept if the route to its destination passes the chosen station.
+- **Direction and Calling at must agree.** If you set both, the calling-at station has to lie in that direction from your stop; the form refuses a combination that could never show a train. Setting just one of them is normally enough.
+- **If TfL's route data can't be loaded**, a filtered stop shows no trains rather than a mix of both directions, and tries again 30 minutes later.
+- **Changing a filter gives the sensor a new entity ID**, so update any cards or automations that use it.
+
+Examples (the sensor is named after its filters, e.g. `Liverpool Street (via Stratford)`):
+
+| Journey | Filter | Entity ID |
+|---|---|---|
+| Liverpool Street → Stratford | Calling at: Stratford | `sensor.london_tfl_elizabeth_910glivstll_via_910gstfd` |
+| Stratford → Liverpool Street | Direction: Westbound | `sensor.london_tfl_elizabeth_910gstfd_westbound` |
+| Stratford → Liverpool Street (either level) | Calling at: Liverpool Street | `sensor.london_tfl_elizabeth_910gstfd_via_hublst` |
+| Hayes & Harlington → central London | Direction: Eastbound | `sensor.london_tfl_elizabeth_910ghayesah_eastbound` |
 
 Sensor state is the next train departure time from the given station and platform (if set).
 Attributes contain up to `max` departures.

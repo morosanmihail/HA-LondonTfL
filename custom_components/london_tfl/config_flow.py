@@ -195,6 +195,9 @@ def _route_fields(routes: LineRoutes, station: str, stop: dict[str, Any] | None 
     fields: dict = {}
     current_direction = stop.get(CONF_DIRECTION) or ""
     current_via = stop.get(CONF_CALLING_AT) or ""
+    if current_via and current_via not in stops_after and routes.station_key(current_via) in stops_after:
+        # Saved before stations with two stops on the line (Liverpool Street) were listed once: show it as that station.
+        current_via = routes.station_key(current_via)
     if directions:
         options = list(directions)
         if current_direction and current_direction not in options:
@@ -236,7 +239,7 @@ def _route_values(
     if direction and via and routes and routes.direction_of(station, via) != direction:
         errors[CONF_CALLING_AT] = "calling_at_wrong_direction"
     if via:
-        name = routes.names.get(via) if routes else None
+        name = routes.station_name(via) if routes else None
         if not name and via == stop.get(CONF_CALLING_AT):
             name = stop.get(CONF_CALLING_AT_NAME)
     else:

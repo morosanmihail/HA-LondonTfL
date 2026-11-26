@@ -241,7 +241,7 @@ class LondonTfLSensor(SensorEntity):
         if not self.calling_at:
             return ""
         routes = self._tfl_data.get_routes()
-        name = routes.names.get(self.calling_at) if routes else None
+        name = routes.station_name(self.calling_at) if routes else None
         name = name or self._calling_at_name or self.calling_at
         # It goes inside the brackets of the sensor name, so drop a qualifier such as "Stratford (London)" has.
         name = re.sub(r"\s*\([^)]*\)$", "", name) or name

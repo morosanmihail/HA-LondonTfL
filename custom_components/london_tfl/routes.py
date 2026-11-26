@@ -63,6 +63,9 @@ class LineRoutes:
         self.routes: list[list[str]] = []
         self.names: dict[str, str] = {}
         self.coords: dict[str, tuple[float, float]] = {}
+        # Stop id -> id of the station complex it belongs to. Liverpool Street's Elizabeth line platforms (910GLIVSTLL)
+        # and its main line station (910GLIVST) are separate stops on the line but both sit under HUBLST.
+        self.parents: dict[str, str] = {}
 
     @classmethod
     def from_json(cls, sequences: list) -> LineRoutes:
@@ -80,6 +83,8 @@ class LineRoutes:
                         routes.names.setdefault(stop_id, _clean_name(stop["name"]))
                     if stop.get("lat") is not None and stop.get("lon") is not None:
                         routes.coords.setdefault(stop_id, (float(stop["lat"]), float(stop["lon"])))
+                    if stop.get("topMostParentId"):
+                        routes.parents.setdefault(stop_id, stop["topMostParentId"])
             for route in sequence.get("orderedLineRoutes") or []:
                 ids = [i for i in route.get("naptanIds") or [] if i]
                 if len(ids) > 1 and ids not in routes.routes:
@@ -91,6 +96,30 @@ class LineRoutes:
 
     def name(self, stop_id: str) -> str:
         return self.names.get(stop_id, stop_id)
+
+    def members(self, station_id: str) -> set[str]:
+        """Every stop on the line that is part of the same station as this stop id (or station complex id).
+
+        Picking Liverpool Street as a calling-at station has to match trains through the Elizabeth line platforms and
+        those diverted into the main line station alike.
+        """
+        if not station_id:
+            return set()
+        parent = self.parents.get(station_id, station_id)
+        found = {stop for stop, p in self.parents.items() if p == parent}
+        return found | ({station_id} if station_id in self.names or not found else set())
+
+    def station_key(self, stop_id: str) -> str:
+        """One id per station: the station complex id where the line has several stops in it, else the stop id."""
+        parent = self.parents.get(stop_id)
+        if parent and parent != stop_id and len(self.members(parent)) > 1:
+            return parent
+        return stop_id
+
+    def station_name(self, station_id: str) -> str | None:
+        """Name of a stop or station complex; for a complex, the shortest of its stops' names ("Liverpool Street")."""
+        names = [self.names[m] for m in self.members(station_id) if m in self.names]
+        return min(names, key=len) if names else None
 
     def _route_direction(self, route: list[str]) -> str | None:
         return compass_between(self.coords.get(route[0]), self.coords.get(route[-1]))
@@ -112,19 +141,33 @@ class LineRoutes:
         this station falls back to where it lies on the map.
         """
         votes: dict[str, int] = {}
-        for route, _, _ in self._legs(station, destination):
-            direction = self._route_direction(route)
-            if direction:
-                votes[direction] = votes.get(direction, 0) + 1
+        targets = self.members(destination) or {destination}
+        for target in targets:
+            for route, _, _ in self._legs(station, target):
+                direction = self._route_direction(route)
+                if direction:
+                    votes[direction] = votes.get(direction, 0) + 1
         if votes:
             return max(votes, key=votes.get)
-        return compass_between(self.coords.get(station), self.coords.get(destination))
+        return compass_between(self.coords.get(station), self._coords_of(destination))
+
+    def _coords_of(self, station_id: str):
+        if station_id in self.coords:
+            return self.coords[station_id]
+        return next((self.coords[m] for m in sorted(self.members(station_id)) if m in self.coords), None)
 
     def calls_at(self, station: str, via: str, destination: str) -> bool:
-        """Whether a train from station to destination passes through (or ends at) via, on any route it could take."""
-        if not via or via == station:
+        """Whether a train from station to destination passes through (or ends at) via, on any route it could take.
+
+        via may be a stop or a whole station: any of its stops counts, so "Liverpool Street" matches a train through
+        the Elizabeth line platforms and one diverted to terminate in the main line station upstairs.
+        """
+        stops = self.members(via)
+        if not stops or station in stops:
             return False
-        return any(via in route[here + 1 : there + 1] for route, here, there in self._legs(station, destination))
+        return any(
+            stops.intersection(route[here + 1 : there + 1]) for route, here, there in self._legs(station, destination)
+        )
 
     def directions_from(self, station: str) -> list[str]:
         """The compass directions trains run in from this station, in a fixed order."""
@@ -137,17 +180,25 @@ class LineRoutes:
         return [d for d in COMPASS_DIRECTIONS if d in found]
 
     def stops_after(self, station: str) -> dict[str, str]:
-        """Stops reachable from this station without changing, as {stop id: name}, nearest first."""
+        """Stations reachable from this one without changing, as {station id: name}, nearest first.
+
+        A station with several stops on the line (Liverpool Street, Paddington) is listed once, under its station
+        complex id, so that choosing it matches all of them.
+        """
+        own = self.station_key(station)
         distance: dict[str, int] = {}
         for route in self.routes:
             if station not in route:
                 continue
             here = route.index(station)
             for offset, stop in enumerate(route[here + 1 :], start=1):
-                if stop not in distance or offset < distance[stop]:
-                    distance[stop] = offset
-        ordered = sorted(distance, key=lambda s: (distance[s], self.name(s)))
-        return {stop: self.name(stop) for stop in ordered}
+                key = self.station_key(stop)
+                if key == own:
+                    continue
+                if key not in distance or offset < distance[key]:
+                    distance[key] = offset
+        ordered = sorted(distance, key=lambda s: (distance[s], self.station_name(s) or s))
+        return {key: self.station_name(key) or key for key in ordered}
 
 
 async def _download_routes(line: str) -> list:
