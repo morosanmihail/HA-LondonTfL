@@ -1,9 +1,14 @@
 """Route-aware filtering: which way a train is going, and whether it calls at a given station.
 
-Some feeds, notably the Elizabeth line's arrivaldepartures, carry neither a direction nor a usable platform (central
-London stations report every train as "Platform Unknown"). What they do carry is the train's destination. TfL's
-/Line/{line}/Route/Sequence/{direction} lists every route the line runs as an ordered list of stops, so a train's
-direction of travel and the stations it passes can be worked out from where it is now and where it is going.
+Many feeds carry neither a direction nor a usable platform: the Elizabeth line and Overground report many trains as
+"Platform Unknown", DLR platforms are plain numbers, and TfL's own "direction" field is often empty. What every rail
+feed does carry is the train's destination. TfL's /Line/{line}/Route/Sequence/{direction} lists every route a line
+runs as an ordered list of stops, so a train's direction of travel and the stations it passes can be worked out from
+where it is now and where it is going. This works the same for any line with route data.
+
+Loops need care. TfL describes the Circle line as one route, Hammersmith to Edgware Road and on round the loop back to
+Edgware Road, so a station can appear twice and a compass direction taken from the route's ends means nothing there.
+Such routes still count for "calling at", but give no direction.
 """
 
 from __future__ import annotations
@@ -121,16 +126,33 @@ class LineRoutes:
         names = [self.names[m] for m in self.members(station_id) if m in self.names]
         return min(names, key=len) if names else None
 
+    @staticmethod
+    def is_loop(route: list[str]) -> bool:
+        """A route that passes a stop twice, like the Circle line's."""
+        return len(set(route)) != len(route)
+
     def _route_direction(self, route: list[str]) -> str | None:
+        if self.is_loop(route):
+            return None
         return compass_between(self.coords.get(route[0]), self.coords.get(route[-1]))
 
+    @staticmethod
+    def _positions(route: list[str], stop: str) -> list[int]:
+        return [index for index, value in enumerate(route) if value == stop]
+
     def _legs(self, station: str, destination: str):
-        """(route, index of station, index of destination) for each route that runs from station to destination."""
+        """(route, index of station, index of destination) for each way a route runs from station to destination.
+
+        On a loop a station can appear twice: each appearance is paired with the next time the destination comes up.
+        """
         for route in self.routes:
-            if station in route and destination in route:
-                here = route.index(station)
-                there = route.index(destination)
-                if there > here:
+            starts = self._positions(route, station)
+            if not starts:
+                continue
+            ends = self._positions(route, destination)
+            for here in starts:
+                there = next((end for end in ends if end > here), None)
+                if there is not None:
                     yield route, here, there
 
     def direction_of(self, station: str, destination: str) -> str | None:
@@ -141,15 +163,43 @@ class LineRoutes:
         this station falls back to where it lies on the map.
         """
         votes: dict[str, int] = {}
+        on_a_loop = False
         targets = self.members(destination) or {destination}
         for target in targets:
             for route, _, _ in self._legs(station, target):
                 direction = self._route_direction(route)
                 if direction:
                     votes[direction] = votes.get(direction, 0) + 1
+                elif self.is_loop(route):
+                    on_a_loop = True
+        straight = compass_between(self.coords.get(station), self._coords_of(destination))
         if votes:
-            return max(votes, key=votes.get)
-        return compass_between(self.coords.get(station), self._coords_of(destination))
+            best = max(votes.values())
+            tied = [direction for direction, count in votes.items() if count == best]
+            if len(tied) == 1:
+                return tied[0]
+            # Branches can disagree: on the District, Earl's Court to Wimbledon is on a westbound route (Upminster -
+            # Wimbledon) and a southbound one (Edgware Road - Wimbledon). The way most routes through this station
+            # run decides (westbound at Earl's Court, like the Ealing and Richmond trains on the same platforms),
+            # then the way the destination lies from here.
+            through = self._directions_through(station)
+            most = max(through.get(direction, 0) for direction in tied)
+            tied = [direction for direction in tied if through.get(direction, 0) == most]
+            return straight if straight in tied else sorted(tied)[0]
+        if on_a_loop:
+            return None
+        return straight
+
+    def _directions_through(self, station: str) -> dict[str, int]:
+        """How many routes leave this station in each direction."""
+        counts: dict[str, int] = {}
+        for route in self.routes:
+            positions = self._positions(route, station)
+            if positions and positions[0] < len(route) - 1:
+                direction = self._route_direction(route)
+                if direction:
+                    counts[direction] = counts.get(direction, 0) + 1
+        return counts
 
     def _coords_of(self, station_id: str):
         if station_id in self.coords:
@@ -170,13 +220,18 @@ class LineRoutes:
         )
 
     def directions_from(self, station: str) -> list[str]:
-        """The compass directions trains run in from this station, in a fixed order."""
-        found = set()
+        """The directions a train from this station can count as, in a fixed order.
+
+        Worked out from every stop a train can head for, with the same rule a train is filtered by, so no direction is
+        offered that no train would ever match (a single northbound route through a station whose trains all resolve
+        to eastbound or westbound, say).
+        """
+        reachable = set()
         for route in self.routes:
-            if station in route and route.index(station) < len(route) - 1:
-                direction = self._route_direction(route)
-                if direction:
-                    found.add(direction)
+            positions = self._positions(route, station)
+            if positions:
+                reachable.update(stop for stop in route[positions[0] + 1 :] if stop != station)
+        found = {self.direction_of(station, stop) for stop in reachable}
         return [d for d in COMPASS_DIRECTIONS if d in found]
 
     def stops_after(self, station: str) -> dict[str, str]:
@@ -188,9 +243,10 @@ class LineRoutes:
         own = self.station_key(station)
         distance: dict[str, int] = {}
         for route in self.routes:
-            if station not in route:
+            positions = self._positions(route, station)
+            if not positions:
                 continue
-            here = route.index(station)
+            here = positions[0]
             for offset, stop in enumerate(route[here + 1 :], start=1):
                 key = self.station_key(stop)
                 if key == own:

@@ -156,15 +156,12 @@ async def test_options_edit_changes_direction(hass) -> None:
     assert stop[CONF_CALLING_AT] == ""
 
 
-async def test_tube_stops_are_not_offered_route_filters(hass) -> None:
-    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"method": "tube"})
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"line": ["elizabeth"]})
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"station": LIVST, "max": 3})
-    keys = {str(k) for k in result["data_schema"].schema}
-    assert CONF_DIRECTION not in keys and CONF_CALLING_AT not in keys
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
-    assert CONF_DIRECTION not in result["data"][CONF_STOPS][0]
+async def test_bus_stops_are_not_offered_route_filters() -> None:
+    from custom_components.london_tfl.config_flow import _fetch_routes, _route_fields
+
+    routes = await _fetch_routes({"method": "bus", "line": "15", "station": "490000077E"})
+    assert not routes
+    assert _route_fields(routes, "490000077E") == {}
 
 
 async def test_liverpool_street_is_offered_once_from_stratford(hass) -> None:

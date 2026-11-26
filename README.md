@@ -29,25 +29,28 @@ For bus stops the "platform" is the route number.
 
 To follow one direction of a station on the Underground, set the platform filter to part of the platform name shown in the sensor's `platform` attribute (for example `Westbound`). A stop with a platform filter is named `Station (filter)` and its entity id includes the filter, so the two directions of the same station and line get different, stable names. Without a filter the name is `Station to <destination of the next train>` and covers every platform.
 
-### Elizabeth line: direction and calling-at filters
+### Direction and calling-at filters (Tube, Elizabeth line, Overground, DLR, tram)
 
-The Elizabeth line feed has no direction field, and its platform information is unreliable: in central London (Liverpool Street, Farringdon, Paddington and others) TfL reports every train as `Platform Unknown`, and at some stations (Stratford, for example) the same platform is reported as `Platform 5` for some trains and `Platform Unknown` for others. A platform filter therefore either can't split the two directions or silently drops trains.
+TfL's live feeds often say little about which way a train is going. The Elizabeth line feed has no direction field at all, and in central London (Liverpool Street, Farringdon, Paddington and others) reports every train as `Platform Unknown`. The Overground reports many trains as `Platform Unknown` too and often leaves TfL's own direction field empty. DLR platforms are plain numbers. And at some stations (Stratford, for example) the same platform is reported as `Platform 5` for some trains and `Platform Unknown` for others. A platform filter therefore either can't split the directions or silently drops trains.
 
-Elizabeth line stops instead offer two extra options on the platform step (and under **Configure → Edit stop**), both worked out from TfL's route data, fetched once a day, rather than the platform or destination:
+Stops on the Tube, Elizabeth line, Overground, DLR and trams can instead use two extra options on the platform step (and under **Configure → Edit stop**). Both are worked out from TfL's route data for the line (fetched once a day) and each train's destination, rather than the platform:
 
-- **Direction of travel** (`Eastbound` / `Westbound`) keeps every train heading that way. It keeps working when trains are diverted to another platform, change destination by time of day or terminate early. This is usually all you need.
-- **Calling at** keeps only trains whose route from your station passes through (or ends at) the chosen station. Use it when one direction splits into branches you don't want: from Liverpool Street, `Calling at: Stratford` keeps the Shenfield trains and leaves out the Abbey Wood ones.
+- **Direction of travel** (`Eastbound`, `Westbound`, `Northbound`, `Southbound`: whichever the line runs in from your station) keeps every train heading that way. It keeps working when trains are diverted to another platform, change destination by time of day or terminate early. This is usually all you need.
+- **Calling at** keeps only trains whose route from your station passes through (or ends at) the chosen station. Use it when one direction splits into branches you don't want: from Liverpool Street, `Calling at: Stratford` keeps the Shenfield trains and leaves out the Abbey Wood ones; on the Northern line, a station on the Bank branch keeps out trains via Charing Cross.
 
 Things to know:
 
-- **Leave the platform filter blank** on Elizabeth line stops and use these instead.
-- **Liverpool Street and Paddington have two parts on the line**: the Elizabeth line platforms underground and the main line station above. TfL treats each part as a separate station, but the Calling at list shows each of them once, and choosing it matches both. That includes trains that are diverted to terminate at the main line station, as happens at Liverpool Street during disruption.
+- **Leave the platform filter blank** on Elizabeth line, Overground and DLR stops and use these instead. On the Tube, platform names already include a direction (`Westbound - Platform 2`), so the platform filter works there too.
+- **On branching lines a train takes the direction of the route it runs on**, and only directions some train from your station actually takes are offered. At Earl's Court on the District, Upminster and Edgware Road trains are eastbound; Ealing Broadway, Richmond, Kensington (Olympia) and Wimbledon trains are westbound. Where two routes leaving the same way point differently overall (from the Wimbledon branch, Upminster trains count as eastbound but Edgware Road trains as northbound), use Calling at with a station they share, such as Earl's Court, to get them all.
+- **Loops have no direction.** TfL describes the Circle line as one route that goes round the loop back to Edgware Road, so a compass direction means nothing there and isn't offered; use Calling at instead.
+- **Stations with two parts on the line**, like Liverpool Street and Paddington on the Elizabeth line (the Elizabeth line platforms underground and the main line station above), are listed once in Calling at and match both. That includes trains diverted to terminate at the main line station, as happens at Liverpool Street during disruption.
 - **Calling at follows the route, not the individual train.** TfL doesn't publish each train's stopping pattern, so a train is kept if the route to its destination passes the chosen station.
 - **Direction and Calling at must agree.** If you set both, the calling-at station has to lie in that direction from your stop; the form refuses a combination that could never show a train. Setting just one of them is normally enough.
-- **If TfL's route data can't be loaded**, a filtered stop shows no trains rather than a mix of both directions, and tries again 30 minutes later.
+- **If TfL's route data can't be loaded**, a filtered stop shows no trains rather than a mix of directions, and tries again 30 minutes later.
 - **Changing a filter gives the sensor a new entity ID**, so update any cards or automations that use it.
+- Buses aren't covered: use the platform filter (the route number) for those.
 
-Examples (the sensor is named after its filters, e.g. `Liverpool Street (via Stratford)`):
+Examples (the sensor is named after its filters, e.g. `Liverpool Street (via Stratford)`, and its entity ID ends with them):
 
 | Journey | Filter | Entity ID |
 |---|---|---|
@@ -55,6 +58,9 @@ Examples (the sensor is named after its filters, e.g. `Liverpool Street (via Str
 | Stratford → Liverpool Street | Direction: Westbound | `sensor.london_tfl_elizabeth_910gstfd_westbound` |
 | Stratford → Liverpool Street (either level) | Calling at: Liverpool Street | `sensor.london_tfl_elizabeth_910gstfd_via_hublst` |
 | Hayes & Harlington → central London | Direction: Eastbound | `sensor.london_tfl_elizabeth_910ghayesah_eastbound` |
+| Earl's Court → Wimbledon (District) | Calling at: Wimbledon (Direction: Westbound also includes Ealing and Richmond trains) | ends `_via_<station id>` |
+| Southfields → central London (District) | Calling at: Earl's Court | ends `_via_<station id>` |
+| Baker Street → King's Cross (Circle) | Calling at: King's Cross St. Pancras | ends `_via_<station id>` |
 
 Sensor state is the next train departure time from the given station and platform (if set).
 Attributes contain up to `max` departures.

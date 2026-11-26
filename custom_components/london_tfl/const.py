@@ -65,10 +65,11 @@ TFL_ROUTE_SEQUENCE_URL = "https://api.tfl.gov.uk/Line/{0}/Route/Sequence/{1}"
 # (techforum.tfl.gov.uk/t/2428).
 NO_TIMETABLE_METHODS = {"national-rail", "overground", "elizabeth-line"}
 TFL_API_BASE = "https://api.tfl.gov.uk"
-# Modes whose live feed gives no direction and often no platform (the Elizabeth line reports "Platform Unknown" in
-# central London), so a stop can instead be filtered by direction of travel or by a station the train calls at,
-# worked out from the line's route data.
-ROUTE_FILTER_METHODS = {"elizabeth-line"}
+# Modes whose stops can be filtered by direction of travel or by a station the train calls at, worked out from the
+# line's route data and each train's destination. Their feeds often give no direction and no usable platform (the
+# Elizabeth line and Overground report many trains as "Platform Unknown"; DLR platforms are plain numbers). Buses are
+# left out: hundreds of routes, and every stop is its own point.
+ROUTE_FILTER_METHODS = {"tube", "elizabeth-line", "overground", "dlr", "tram"}
 USE_LDBWS_URL = "use-ldbws-purposefully-not-a-url"
 
 # Maps TfL national-rail line IDs to LDBWS two-letter TOC codes.
