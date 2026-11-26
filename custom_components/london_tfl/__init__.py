@@ -1,14 +1,14 @@
-import asyncio
 import logging
 
 from homeassistant import config_entries, core
 from homeassistant.const import Platform
 import homeassistant.helpers.config_validation as cv
 
-from .const import CONF_STOPS, DOMAIN
+from .const import CONF_STOPS, CONF_STRIKE_LINES, CONF_STRIKES, CONF_STRIKES_ENABLED, DOMAIN
+from .strikes import StrikeCoordinator
 
 
-PLATFORMS = [Platform.SENSOR]
+PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -25,6 +25,13 @@ async def async_setup_entry(
     config = dict(entry.data)
     if entry.options.get(CONF_STOPS) is not None:
         config[CONF_STOPS] = entry.options[CONF_STOPS]
+    strikes = entry.options.get(CONF_STRIKES) or entry.data.get(CONF_STRIKES) or {}
+    config[CONF_STRIKES] = strikes
+    if strikes.get(CONF_STRIKES_ENABLED):
+        coordinator = StrikeCoordinator(hass, strikes.get(CONF_STRIKE_LINES))
+        # Not async_config_entry_first_refresh: TfL being unreachable must not stop the departure sensors loading.
+        await coordinator.async_refresh()
+        config["strike_coordinator"] = coordinator
     hass.data[DOMAIN][entry.entry_id] = config
 
     # Reload the entry whenever the user saves changes via the options flow.
@@ -51,11 +58,7 @@ async def async_unload_entry(
     hass: core.HomeAssistant, entry: config_entries.ConfigEntry
 ) -> bool:
     """Unload a config entry."""
-    unload_ok = all(
-        await asyncio.gather(
-            *[hass.config_entries.async_forward_entry_unload(entry, "sensor")]
-        )
-    )
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     # Remove options_update_listener.
     # hass.data[DOMAIN][entry.entry_id]["unsub_options_update_listener"]()
 

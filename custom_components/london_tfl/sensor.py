@@ -9,13 +9,15 @@ import homeassistant.helpers.config_validation as cv
 from datetime import timedelta
 from typing import Optional
 from homeassistant import config_entries, core
-from homeassistant.components.sensor import SensorEntity, PLATFORM_SCHEMA
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, PLATFORM_SCHEMA
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .const import (
@@ -42,6 +44,7 @@ from .const import (
 )
 from .tfl_data import TfLData
 from .hasl_utils import as_hasl_departures
+from .strikes import describe, describe_affected, next_strike_start
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -121,12 +124,18 @@ async def async_setup_entry(
             if stop.get(CONF_METHOD) != "national-rail":
                 sensors.append(LondonTfLSensor(departure_mode="scheduled", **common_kwargs))
                 sensors.append(LondonTfLSensor(departure_mode="all", **common_kwargs))
-    # Remove entities from the registry that belong to this config entry but
-    # are no longer in the stop list (e.g. after the user removed a stop).
+    coordinator = config.get("strike_coordinator")
+    if coordinator is not None:
+        sensors.append(LondonTfLStrikeSensor(coordinator, config_entry.entry_id))
+
+    # Remove sensors from the registry that belong to this config entry but
+    # are no longer in the stop list (e.g. after the user removed a stop), or
+    # the strike sensor once strike alerts are turned off. The binary sensor
+    # platform tidies up its own entities.
     registry = er.async_get(hass)
     new_unique_ids = {s.unique_id for s in sensors}
     for entry in er.async_entries_for_config_entry(registry, config_entry.entry_id):
-        if entry.unique_id not in new_unique_ids:
+        if entry.domain == "sensor" and entry.unique_id not in new_unique_ids:
             registry.async_remove(entry.entity_id)
 
     platform = entity_platform.async_get_current_platform()
@@ -372,3 +381,34 @@ class LondonTfLSensor(SensorEntity):
         attributes["data"] = data
 
         return attributes
+
+
+class LondonTfLStrikeSensor(CoordinatorEntity, SensorEntity):
+    """When the next strike on the watched lines starts, with every announced strike in its attributes."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:account-group"
+    _attr_name = "London TfL strikes"
+    # The strike list can be long: keep it out of the recorder's history, which only needs the state.
+    _unrecorded_attributes = frozenset({"strikes", "affected_now", "watched_lines"})
+
+    def __init__(self, coordinator, entry_id: str) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry_id}_strikes"
+
+    @property
+    def native_value(self):
+        return next_strike_start(self.coordinator.data or {}, dt_util.now())
+
+    @property
+    def extra_state_attributes(self):
+        data = self.coordinator.data or {}
+        now = dt_util.now()
+        strikes = [describe(s, now) for s in data.get("strikes", []) if s["end"] > now]
+        return {
+            "strike_count": len(strikes),
+            "strikes": strikes,
+            "affected_now": [describe_affected(line) for line in data.get("affected_now", [])],
+            "watched_lines": data.get("watched_lines", []),
+            "watching_all_lines": data.get("watched_all", True),
+        }

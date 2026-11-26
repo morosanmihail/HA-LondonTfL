@@ -1,0 +1,302 @@
+[
+ {
+  "id": "bakerloo",
+  "name": "Bakerloo",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "central",
+  "name": "Central",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 9,
+    "statusSeverityDescription": "Minor Delays",
+    "reason": "Central Line: No service between White City and Liverpool Street and MINOR DELAYS on the rest of the line due to strike action. Tube services will finish early tonight so please complete your journey by 21:00.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-11-26T15:18:00Z",
+      "toDate": "2026-11-27T01:29:00Z",
+      "isNow": true
+     }
+    ],
+    "disruption": {
+     "category": "RealTime",
+     "categoryDescription": "RealTime"
+    }
+   },
+   {
+    "statusSeverity": 3,
+    "statusSeverityDescription": "Part Suspended",
+    "reason": "Central Line: No service between White City and Liverpool Street and MINOR DELAYS on the rest of the line due to strike action. Tube services will finish early tonight so please complete your journey by 21:00.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-11-26T15:18:00Z",
+      "toDate": "2026-11-26T18:32:00Z",
+      "isNow": true
+     }
+    ],
+    "disruption": {
+     "category": "RealTime",
+     "categoryDescription": "RealTime"
+    }
+   }
+  ]
+ },
+ {
+  "id": "circle",
+  "name": "Circle",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 2,
+    "statusSeverityDescription": "Suspended",
+    "reason": "Circle Line: No service on the entire line due to strike action. Tube services will finish early tonight so please complete your journey by 21:00.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-11-26T12:12:00Z",
+      "toDate": "2026-11-26T18:32:00Z",
+      "isNow": true
+     }
+    ],
+    "disruption": {
+     "category": "RealTime",
+     "categoryDescription": "RealTime"
+    }
+   }
+  ]
+ },
+ {
+  "id": "district",
+  "name": "District",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 9,
+    "statusSeverityDescription": "Minor Delays",
+    "reason": "District Line: Minor delays due to strike action. If you're travelling beyond Earl's Court, please take the first train and change there. Tube services will finish early tonight so please complete your journey by 21:00.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-11-26T14:30:00Z",
+      "toDate": "2026-11-27T01:29:00Z",
+      "isNow": true
+     }
+    ],
+    "disruption": {
+     "category": "RealTime",
+     "categoryDescription": "RealTime"
+    }
+   }
+  ]
+ },
+ {
+  "id": "dlr",
+  "name": "DLR",
+  "modeName": "dlr",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "elizabeth",
+  "name": "Elizabeth line",
+  "modeName": "elizabeth-line",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "hammersmith-city",
+  "name": "Hammersmith & City",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "jubilee",
+  "name": "Jubilee",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "liberty",
+  "name": "Liberty",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "lioness",
+  "name": "Lioness",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "metropolitan",
+  "name": "Metropolitan",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "mildmay",
+  "name": "Mildmay",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 6,
+    "statusSeverityDescription": "Severe Delays",
+    "reason": "Mildmay line: Severe delays between Stratford and Richmond due to an earlier signal failure at Willesden Junction.",
+    "validityPeriods": [
+     {
+      "fromDate": "2026-11-26T14:39:00Z",
+      "toDate": "2026-11-27T01:29:00Z",
+      "isNow": true
+     }
+    ],
+    "disruption": {
+     "category": "RealTime",
+     "categoryDescription": "RealTime"
+    }
+   }
+  ]
+ },
+ {
+  "id": "northern",
+  "name": "Northern",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "piccadilly",
+  "name": "Piccadilly",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "suffragette",
+  "name": "Suffragette",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "tram",
+  "name": "Tram",
+  "modeName": "tram",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "victoria",
+  "name": "Victoria",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "waterloo-city",
+  "name": "Waterloo & City",
+  "modeName": "tube",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "weaver",
+  "name": "Weaver",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ },
+ {
+  "id": "windrush",
+  "name": "Windrush",
+  "modeName": "overground",
+  "lineStatuses": [
+   {
+    "statusSeverity": 10,
+    "statusSeverityDescription": "Good Service",
+    "validityPeriods": []
+   }
+  ]
+ }
+]

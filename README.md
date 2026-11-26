@@ -69,6 +69,103 @@ If you do not want this behaviour, you can change the name of the sensor manuall
 You can still manually configure the integration, but it's not recommended.
 Check https://github.com/morosanmihail/HA-LondonTfL/wiki/Manual-setup if you insist.
 
+## Strike alerts
+
+The integration can also tell you about strikes on the lines you use. It reads them from TfL's own line status data, the same information the [TfL strikes page](https://tfl.gov.uk/status-updates/strikes) shows, and checks hourly.
+
+Turn it on from the integration's **Configure → Strike alerts**:
+
+- **Track strikes**: adds the three entities below (turning it off removes them).
+- **Lines to watch**: pick the lines you travel on. Leave it empty to watch every Tube, Elizabeth line, Overground, DLR and tram line.
+
+| Entity | State | Attributes |
+|---|---|---|
+| `sensor.london_tfl_strikes` | When the next strike starts (or the one under way). `unknown` when none is announced in the next 30 days | `strikes`: each announced strike with `title`, `when` (e.g. `Thu 17 Dec 12:00 – Fri 18 Dec 11:59`), `start`, `end`, `active`, `lines`, `line_ids`, `line_colours`, `description` (TfL's text). `affected_now`: on a strike day, each line's live status (`line`, `status` such as `Part Suspended`, `description`, `until`, `colour`). Also `strike_count`, `watched_lines` |
+| `binary_sensor.london_tfl_strike_today` | `on` when a strike affects a watched line for the rest of today: under way, starting later today, or reported in TfL's live status | `strikes`, `affected_now` |
+| `binary_sensor.london_tfl_strike_within_7_days` | `on` when a strike is under way or starts within the next 7 days | `next_strike`, `strikes` |
+
+Things to know:
+
+- **Announced strikes and the day itself look different in TfL's data.** Before a strike, TfL publishes the announcement ("TUBE STRIKE: …") with its exact start and end. On the day, TfL replaces it with each line's live status ("Circle Line: No service on the entire line due to strike action"), which is what `affected_now` shows.
+- Strikes are announced per line, so one strike covering all 11 Tube lines appears once, listing those lines.
+- If TfL can't be reached, the strike entities show as unavailable until the next hourly check. Departure sensors are not affected.
+
+### Dashboard cards
+
+These use only the cards built into Home Assistant. Add a **Manual** card and paste the YAML. The Markdown card's `content: |` matters: with `content: >` YAML joins all the lines into one and the headings and line list run together.
+
+A card listing every announced strike, which only appears when there is one:
+
+```yaml
+type: markdown
+title: TfL strikes
+visibility:
+  - condition: state
+    entity: sensor.london_tfl_strikes
+    state_not: unknown
+  - condition: state
+    entity: sensor.london_tfl_strikes
+    state_not: unavailable
+content: |
+  {% set live = state_attr('sensor.london_tfl_strikes', 'affected_now') or [] %}
+  {% set strikes = state_attr('sensor.london_tfl_strikes', 'strikes') or [] %}
+  {% if live %}
+  ### 🚨 Strike action today
+  {% for l in live %}
+  <font color="{{ l.colour }}">■</font> **{{ l.line }}**: {{ l.status }}
+  {% endfor %}
+  {% endif %}
+  {% for s in strikes %}
+  ### {{ '🔴' if s.active else '🗓️' }} {{ s.title }}
+  **{{ s.when }}**
+
+  {% for i in range(s.lines | length) %}<font color="{{ s.line_colours[i] }}">■</font> {{ s.lines[i] }}{{ ', ' if not loop.last }}{% endfor %}
+
+  {{ s.description }}
+  {% endfor %}
+```
+
+<img src="images/strike_card.png" alt="Strike list card on a strike day" width="420">
+
+*On a strike day: each line's live status, then the announced strikes (cropped after the first; the 19–20 December strike follows in the same format).*
+
+At-a-glance tiles:
+
+```yaml
+type: grid
+columns: 2
+square: false
+cards:
+  - type: tile
+    entity: binary_sensor.london_tfl_strike_today
+    name: Strike today
+  - type: tile
+    entity: binary_sensor.london_tfl_strike_within_7_days
+    name: Strike this week
+```
+
+<img src="images/strike_tiles.png" alt="Strike today and strike this week tiles" width="500">
+
+### Notification example
+
+```yaml
+alias: TfL strike warning
+triggers:
+  - trigger: time
+    at: "07:00:00"
+conditions:
+  - condition: state
+    entity_id: binary_sensor.london_tfl_strike_today
+    state: "on"
+actions:
+  - action: notify.notify
+    data:
+      title: TfL strike today
+      message: >
+        {% set live = state_attr('sensor.london_tfl_strikes', 'affected_now') or [] %}
+        {% if live %}{{ live | map(attribute='line') | join(', ') }} affected.{% else %}Strike starts today: {{ state_attr('binary_sensor.london_tfl_strike_today', 'strikes')[0].when }}.{% endif %}
+```
+
 ## Viewing
 
 Check out https://github.com/morosanmihail/HA-LondonTfL/wiki/Cards

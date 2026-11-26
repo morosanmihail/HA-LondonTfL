@@ -22,6 +22,9 @@ from .const import (
     CONF_DIRECTION,
     CONF_CALLING_AT,
     CONF_CALLING_AT_NAME,
+    CONF_STRIKES,
+    CONF_STRIKES_ENABLED,
+    CONF_STRIKE_LINES,
     CRS_LOOKUP_URL,
     DEFAULT_MAX,
     DEFAULT_METHODS,
@@ -35,6 +38,7 @@ from .const import (
 from .codes import atco_to_crs, is_valid_crs, load_crs_codes
 from .network import request
 from .routes import LineRoutes, get_line_routes
+from .strikes import fetch_lines as fetch_strike_lines
 from .tfl_data import TfLData
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,6 +61,14 @@ class StationOption(NamedTuple):
     display_name: str
     crs: str = ""
 
+
+_MODE_LABELS = {
+    "tube": "Tube",
+    "elizabeth-line": "Elizabeth line",
+    "overground": "Overground",
+    "dlr": "DLR",
+    "tram": "Tram",
+}
 
 _DESCRIPTION_PLACEHOLDERS = {
     "registration_url": NR_REGISTRATION_URL,
@@ -545,6 +557,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._current_stations: dict[str, StationOption] = {}
         # Stop collected on the add-station step, awaiting its platform choice.
         self._pending_stop: dict[str, Any] = {}
+        self._strikes: dict[str, Any] = dict(
+            config_entry.options.get(CONF_STRIKES) or config_entry.data.get(CONF_STRIKES) or {}
+        )
 
     def _stop_label(self, stop: dict[str, Any]) -> str:
         """Return a human-readable label for a stop."""
@@ -553,8 +568,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         return f"{stop.get(CONF_METHOD, '?')} / {stop.get(CONF_LINE, '?')} / {name}"
 
     def _save(self):
-        """Persist the current stops list and close the options flow."""
-        return self.async_create_entry(title="", data={CONF_STOPS: self._stops})
+        """Persist the stops and strike settings and close the options flow."""
+        return self.async_create_entry(title="", data={CONF_STOPS: self._stops, CONF_STRIKES: self._strikes})
 
     # ── Entry point (menu) ────────────────────────────────────────────────────
 
@@ -563,7 +578,44 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         menu_options: list[str] = ["add_stop"]
         if self._stops:
             menu_options += ["edit_stop", "remove_stop"]
+        menu_options.append("strikes")
         return self.async_show_menu(step_id="init", menu_options=menu_options)
+
+    # ── Strike alerts ─────────────────────────────────────────────────────────
+
+    async def async_step_strikes(self, user_input: dict[str, Any] | None = None):
+        """Turn the strike sensors on or off and pick the lines they watch (none picked = every line)."""
+        if user_input is not None:
+            self._strikes = {
+                CONF_STRIKES_ENABLED: bool(user_input.get(CONF_STRIKES_ENABLED)),
+                CONF_STRIKE_LINES: list(user_input.get(CONF_STRIKE_LINES) or []),
+            }
+            return self._save()
+
+        current_lines = list(self._strikes.get(CONF_STRIKE_LINES) or [])
+        try:
+            lines = await fetch_strike_lines()
+        except Exception:
+            _LOGGER.warning("Failed to fetch lines for strike alerts", exc_info=True)
+            lines = []
+        known = {line["id"] for line in lines}
+        options = [
+            selector.SelectOptionDict(value=line["id"], label=f"{line['name']} ({_MODE_LABELS.get(line['mode'], line['mode'])})")
+            for line in lines
+        ] + [selector.SelectOptionDict(value=line_id, label=line_id) for line_id in current_lines if line_id not in known]
+
+        schema: dict = {
+            vol.Optional(CONF_STRIKES_ENABLED, default=bool(self._strikes.get(CONF_STRIKES_ENABLED))): cv.boolean,
+        }
+        if options:
+            schema[vol.Optional(CONF_STRIKE_LINES, description={"suggested_value": current_lines})] = (
+                selector.SelectSelector(selector.SelectSelectorConfig(options=options, multiple=True))
+            )
+        return self.async_show_form(
+            step_id="strikes",
+            data_schema=vol.Schema(schema),
+            description_placeholders={"line_count": str(len(lines))},
+        )
 
     # ── Add stop (method → line → station) ───────────────────────────────────
 

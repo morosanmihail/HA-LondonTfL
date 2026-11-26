@@ -76,7 +76,8 @@
         "menu_options": {
           "add_stop": "Adicionar uma parada",
           "edit_stop": "Editar uma parada",
-          "remove_stop": "Remover paradas"
+          "remove_stop": "Remover paradas",
+          "strikes": "Alertas de greve"
         }
       },
       "add_stop": {
@@ -158,6 +159,18 @@
         "description": "Selecione as paradas que você deseja remover.",
         "data": {
           "stop_indices": "Paradas a remover"
+        }
+      },
+      "strikes": {
+        "title": "Alertas de greve",
+        "description": "Adiciona três entidades que acompanham as greves anunciadas pela TfL, verificadas de hora em hora a partir dos dados de status da própria TfL:\n\n- **London TfL strikes**: quando começa a próxima greve, com todas as greves anunciadas (datas, linhas, descrição da TfL) nos atributos.\n- **London TfL strike today**: ligado quando uma greve afeta alguma das suas linhas hoje.\n- **London TfL strike within 7 days**: ligado quando há uma greve em andamento ou que começa nos próximos 7 dias.\n\nO README tem cartões de painel prontos para elas.",
+        "data": {
+          "enabled": "Acompanhar greves",
+          "lines": "Linhas a acompanhar"
+        },
+        "data_description": {
+          "enabled": "Desligue para remover as entidades de greve.",
+          "lines": "Deixe vazio para acompanhar todas as linhas do Tube, Elizabeth line, Overground, DLR e bonde ({line_count} linhas). As greves são anunciadas por linha, então escolha as que você usa para ignorar as demais."
         }
       }
     }

@@ -76,7 +76,8 @@
         "menu_options": {
           "add_stop": "Add a stop",
           "edit_stop": "Edit a stop",
-          "remove_stop": "Remove stops"
+          "remove_stop": "Remove stops",
+          "strikes": "Strike alerts"
         }
       },
       "add_stop": {
@@ -158,6 +159,18 @@
         "description": "Select the stops you want to remove.",
         "data": {
           "stop_indices": "Stops to remove"
+        }
+      },
+      "strikes": {
+        "title": "Strike alerts",
+        "description": "Adds three entities that track strikes announced by TfL, checked hourly from TfL's own status data:\n\n- **London TfL strikes**: when the next strike starts, with every announced strike (dates, lines, TfL's description) in its attributes.\n- **London TfL strike today**: on when a strike affects any of your lines today.\n- **London TfL strike within 7 days**: on when a strike is under way or starts within the next 7 days.\n\nThe README has ready-made dashboard cards for them.",
+        "data": {
+          "enabled": "Track strikes",
+          "lines": "Lines to watch"
+        },
+        "data_description": {
+          "enabled": "Turn off to remove the strike entities.",
+          "lines": "Leave empty to watch every Tube, Elizabeth line, Overground, DLR and tram line ({line_count} lines). Strikes are announced per line, so pick the ones you travel on to ignore the rest."
         }
       }
     }
